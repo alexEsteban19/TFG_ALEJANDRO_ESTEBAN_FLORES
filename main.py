@@ -204,29 +204,52 @@ def mostrar_perfil_usuario():
     else:
         perfil_window.profile_photo = crear_imagen_perfil(ruta_default)
 
+    import shutil
+    from tkinter import messagebox
+
+
     def seleccionar_imagen():
-        ruta = filedialog.askopenfilename(
-            title="Seleccionar Imagen",
-            filetypes=[("Archivos de imagen", "*.png *.jpg *.jpeg *.bmp *.gif"), ("Todos los archivos", "*.*")]
+        ruta_origen = filedialog.askopenfilename(
+            title="Selecciona una imagen",
+            filetypes=(("Archivos de imagen", "*.png *.jpg *.jpeg *.bmp *.gif"), ("Todos los archivos", "*.*"))
         )
-        if ruta:
-            user_data["rutaImagen"] = ruta
+
+        if ruta_origen:
+            nombre_usuario = user_data.get("UserName", "").strip()
+            if not nombre_usuario:
+                messagebox.showerror("Error", "No se encontr贸 el nombre de usuario. No se puede guardar la imagen.", parent=perfil_window)
+                return
+
+            carpeta_destino = "imagenes_usuarios"
+            if not os.path.exists(carpeta_destino):
+                os.makedirs(carpeta_destino)
+
+            extension = os.path.splitext(ruta_origen)[1]
+            nuevo_nombre = f"{nombre_usuario}{extension}"
+            ruta_destino = os.path.join(carpeta_destino, nuevo_nombre)
+
             try:
+                shutil.copyfile(ruta_origen, ruta_destino)
+                user_data["rutaImagen"] = ruta_destino
+
+                # Actualizar ruta en la base de datos
                 conn = sqlite3.connect('bd/Users.sqlite')
                 cursor = conn.cursor()
-                cursor.execute("UPDATE Usuarios SET rutaImagen = ? WHERE UserName = ?", (ruta, user_data["UserName"]))
+                cursor.execute("UPDATE Usuarios SET rutaImagen = ? WHERE UserName = ?", (ruta_destino, nombre_usuario))
                 conn.commit()
 
-                nueva_foto = crear_imagen_perfil(ruta)
+                # Actualizar imagen en la UI
+                nueva_foto = crear_imagen_perfil(ruta_destino)
                 if nueva_foto:
                     perfil_window.profile_photo = nueva_foto
                     profile_photo_label.configure(image=perfil_window.profile_photo)
                     profile_photo_label.image = perfil_window.profile_photo
 
-            except sqlite3.Error as e:
-                print(f"Error al actualizar la base de datos: {e}")
+            except Exception as e:
+                messagebox.showerror("Error al copiar imagen", str(e), parent=perfil_window)
             finally:
-                conn.close()
+                if conn:
+                    conn.close()
 
     profile_photo_label = ctk.CTkLabel(container, image=perfil_window.profile_photo, text="")
     profile_photo_label.pack(pady=(int(win_h * 0.02), int(win_h * 0.05)))
