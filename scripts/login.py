@@ -88,12 +88,15 @@ class Login:
 
         self.is_password_visible = False
 
+        # Metodo para hacer que se vea o no la contraseña
         def toggle_password_visibility():
             self.is_password_visible = not self.is_password_visible
             if self.is_password_visible:
+                # Se muestra
                 self.password_entry.configure(show="")
                 self.eye_button.configure(image=self.eye_crossed_icon)
             else:
+                # Se muestran *
                 self.password_entry.configure(show="*")
                 self.eye_button.configure(image=self.eye_icon)
 
@@ -104,6 +107,7 @@ class Login:
         )
         self.eye_button.pack(side="right", padx=0, pady=0)
 
+        # Hovers del ojo
         def on_enter_eye(event):
             self.eye_button.configure(fg_color="black")
 
@@ -113,7 +117,7 @@ class Login:
         self.eye_button.bind("<Enter>", on_enter_eye)
         self.eye_button.bind("<Leave>", on_leave_eye)
 
-        # Focus styling
+        # Focus para los entrys
         highlight_color = "#c91706"
 
         def on_focus_in_identity(event):
@@ -147,6 +151,7 @@ class Login:
         )
         self.login_button.pack(pady=int(40 * scale_h), padx=int(30 * scale_w))
 
+        # Hover del boton del login
         def on_enter(event):
             self.login_button.configure(fg_color="#7d0404")
 
@@ -158,6 +163,7 @@ class Login:
 
         self.app.bind("<Return>", lambda event: self.login())
 
+    # Metodo para logearse en la BD
     def login(self):
         username = self.identity_entry.get().strip()
         password = self.password_entry.get().strip()
@@ -171,7 +177,7 @@ class Login:
             messagebox.showinfo("Inicio de Sesión Exitoso", f"Bienvenido a HGC ({user_data['User_Type']})")
             self.app.destroy()
 
-            # Asegurar que ningún valor sea None y envolver entre comillas
+            # Parametros que despues se pasaran al main
             args = [
                 "--UserName", f"\"{user_data.get('UserName', '')}\"",
                 "--Password", f"\"{user_data.get('Password', '')}\"",
@@ -185,7 +191,7 @@ class Login:
             os.system(f"python main.py {' '.join(args)}")
         else:
             messagebox.showerror("Error de Inicio de Sesión", "Los datos no coinciden con ningún usuario registrado.")
-
+    # verifica los datos en la BD
     def verificar_usuario(self, username, password):
         db_path = "bd/Users.sqlite"
         default_image_path = "imagenesCoches/noImage.jpg"  # Ruta predeterminada
@@ -205,7 +211,7 @@ class Login:
                 # Verifica si la ruta existe físicamente; si no, usa la predeterminada
                 if not os.path.exists(ruta_imagen):
                     ruta_imagen = default_image_path
-
+                
                 return {
                     "UserName": result[0],
                     "Password": result[1],
@@ -219,7 +225,8 @@ class Login:
         except sqlite3.Error as e:
             messagebox.showerror("Error de Base de Datos", f"Error al conectar con la base de datos: {e}")
             return None
-
+    
+    # Mantener la ventana ejecutandose
     def ejecutar(self):
         self.app.mainloop()
 
