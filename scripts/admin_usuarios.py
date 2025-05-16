@@ -1,49 +1,29 @@
 import sqlite3
-from tkinter import ttk, StringVar, messagebox
 import customtkinter as ctk
 from PIL import Image
 import screeninfo
-import scripts.admin_usuarios as adminUsers
-from tkcalendar import DateEntry
-import os
 import sys
+import os
+import shutil
 from datetime import datetime
-from reportlab.lib.pagesizes import landscape, A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import cm
-from reportlab.lib import colors
-from reportlab.lib.utils import ImageReader
-from textwrap import wrap
-from datetime import datetime
-import sqlite3
 from tkinter import ttk, messagebox, filedialog
-import customtkinter as ctk
-from PIL import Image
-import screeninfo
-import os
-import sys
-from datetime import datetime
-from reportlab.lib.pagesizes import landscape, A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import cm
-from reportlab.lib import colors
-from reportlab.lib.utils import ImageReader
-from textwrap import wrap
-from datetime import datetime
 
 class AdminUsuarios:
+
+    # Definimos variables base
     current_page = 1
     rows_per_page = 20
     visible_columns = None
     Filtro = False
     query = ""
     search_column = ""
-    selected_user = None  # Mantener el cliente seleccionado como variable estática
+    selected_user = None  # Cliente seleccionado empieza "vacío"
     query_params = ""
     ventana_abierta = False  
     icon_path = "resources/logos/icon_logo.ico"
     ventanas_secundarias = []
 
+    # todos los datos de la BD
     column_name_map = {
         "UserName": "Nombre de Usuario",
         "Password": "Contraseña",
@@ -53,6 +33,8 @@ class AdminUsuarios:
         "User_Type": "Tipo de Usuario",
         "rutaImagen": "Ruta Imagen",
     }
+
+    # datos que muestra la tabla
     column_options = {
         "UserName": "Nombre de Usuario",
         "Nombre": "Nombre",
@@ -61,7 +43,7 @@ class AdminUsuarios:
         "User_Type": "Tipo de Usuario",
     }
 
-
+    # metodo para crear la tabla
     @staticmethod
     def create_table(query, columns, data, frame_right, app, clear_frame_right, total_pages, Filtro):
         for widget in frame_right.winfo_children():
@@ -71,10 +53,11 @@ class AdminUsuarios:
         total_width = app.winfo_width()
         rel_size = total_width / 100
 
+        # si no hubiera columnas, definimos unas "default"
         if AdminUsuarios.visible_columns is None or not AdminUsuarios.visible_columns:
             AdminUsuarios.visible_columns = ["UserName","Nombre","Apellido1","Apellido2","User_Type"]
 
-        # 🔒 Crear contenedor invisible
+        # Crear contenedor invisible
         main_container = ctk.CTkFrame(frame_right, fg_color="#3d3d3d")
         main_container.place_forget()
 
@@ -87,7 +70,7 @@ class AdminUsuarios:
         btn_hover = "#16466e"
         icon_size = (int(rel_size * 3), int(rel_size * 2))
         
-        #Barra dr Búsqueda
+        #Frame superior
         search_frame = ctk.CTkFrame(main_frame, fg_color="transparent", corner_radius=int(rel_size // 2))
         search_frame.pack(fill="x", padx=rel_size // 6, pady=rel_size // 6)
         
@@ -100,13 +83,13 @@ class AdminUsuarios:
         spacer = ctk.CTkLabel(search_frame, text="")  # Vacío, sirve solo para expandir
         spacer.pack(side="left", expand=True)
 
-        #Tabla
+        # Frame Tabla
         tree_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         tree_frame.pack(fill="both", expand=True, padx=rel_size, pady=rel_size // 14)
 
         heading_font_size = int(rel_size)
 
-        #Botones Navegación
+        # Botones Navegación (Páginas)
         nav_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         nav_frame.pack(side="top", fill="x", padx=int(rel_size // 3), pady=int(rel_size // 3))
 
@@ -134,7 +117,7 @@ class AdminUsuarios:
                                 command=lambda: AdminUsuarios.change_page(1, frame_right, clear_frame_right, app))
         next_btn.pack(side="left", padx=rel_size, pady=rel_size // 1.5)
         
-        #Botones Agregar/Modificar/Borrar
+        # Botones Agregar/Modificar/Borrar
         action_frame = ctk.CTkFrame(nav_frame, fg_color="#3d3d3d")
         action_frame.pack(side="right", padx=rel_size, pady=rel_size // 1.5)
 
@@ -162,6 +145,7 @@ class AdminUsuarios:
                                 border_width=1, border_color="white", command=lambda: AdminUsuarios.delete_User(AdminUsuarios.selected_user, frame_right, clear_frame_right, app))
         delete_btn.pack(side="left", padx=rel_size // 2)
 
+        # Habilitamos o deshabilitamos botones de página
         if AdminUsuarios.current_page == 1:
             prev_btn.configure(state="disabled")
         if AdminUsuarios.current_page == total_pages:
@@ -172,30 +156,33 @@ class AdminUsuarios:
         altura_filas = int(altura_total_disponible / AdminUsuarios.rows_per_page)
 
         style = ttk.Style()
-        style.theme_use("clam")  # Asegura compatibilidad con fondo y colores personalizados
+        style.theme_use("clam")
         
+        # Estilo de la tabla
         style.configure("Treeview",
                         font=("Sans Sulex", int(rel_size * 0.85)),
                         rowheight=altura_filas,
-                        background="black",         # ← fondo de las filas
-                        foreground="#ededed",         # ← texto blanco
-                        fieldbackground="black",    # ← fondo general
+                        background="black",
+                        foreground="#ededed",
+                        fieldbackground="black",
                         bordercolor="black"
                         )
 
+        # Estilo de las cabeceras
         style.configure("Treeview.Heading",
                         font=("Sans Sulex", int(rel_size * 0.85)),
-                        foreground="#ededed",         # ← texto encabezado
-                        background="black",       # ← fondo encabezado
+                        foreground="#ededed",
+                        background="black",
                         bordercolor="black",
                         padding=(rel_size // 2, rel_size // 2))
 
         # Estilo para selección (resalta fila seleccionada)
         style.map("Treeview",
-                background=[("selected", "#16466e")],  # celeste oscuro al seleccionar
-                foreground=[("selected", "white")])    # texto blanco en selección
+                background=[("selected", "#16466e")],
+                foreground=[("selected", "white")])
 
 
+        # Creamos la tabla con sus columnas, su limite de filas por pagina y su scroll
         tree = ttk.Treeview(tree_frame, columns=AdminUsuarios.visible_columns, show="headings", height=AdminUsuarios.rows_per_page)
         AdminUsuarios.tree = tree
         x_scrollbar = ttk.Scrollbar(tree_frame, orient="horizontal", command=tree.xview)
@@ -209,12 +196,10 @@ class AdminUsuarios:
             tree.heading(col, text=AdminUsuarios.column_name_map.get(col, col), anchor="center")
             tree.column(col, anchor="center", stretch=True)
 
-        # Inserta filas con colores alternos
-
-##Picha Cambio Fecha-------------------------------------------------------------------------------------------------------------------
+# -------------------------------------- Formato para la fecha -------------------------------------------
         def format_date(value):
             try:
-                # Detecta si el valor es una fecha en formato yyyy-mm-dd o yyyy/mm/dd
+                # Detecta si el valor es una fecha en formato YYYY-MM-DD o YYYY/MM/DD, en ambos casos devuelve: DD/MM/YYYY
                 if isinstance(value, str) and "-" in value:
                     return datetime.strptime(value, "%Y-%m-%d").strftime("%d/%m/%Y")
                 elif isinstance(value, str) and "/" in value:
@@ -227,7 +212,7 @@ class AdminUsuarios:
         for i, row in enumerate(data):
             filtered_row = [row[columns.index(col)] for col in AdminUsuarios.visible_columns]
             
-            # ➕ Formatea las fechas antes de mostrarlas
+            # Formatea las fechas antes de mostrarlas
             for j, col in enumerate(AdminUsuarios.visible_columns):
                 if "fecha" in col.lower() and isinstance(filtered_row[j], str):
                     filtered_row[j] = format_date(filtered_row[j])
@@ -235,14 +220,13 @@ class AdminUsuarios:
             tag = 'evenrow' if i % 2 == 0 else 'oddrow'
             tree.insert("", "end", values=filtered_row, tags=(tag,))
 #----------------------------------------------------------------------------------------------------------------------------------------
-
         tree.pack(pady=rel_size // 1.5, fill="both", expand=True)
         tree.bind("<<TreeviewSelect>>", lambda event: AdminUsuarios.on_item_selected(tree))
 
-        # ✅ MOSTRAR el frame principal una vez terminado
+        # MOSTRAR el frame principal una vez terminado
         main_container.place(relwidth=1.0, relheight=1.0)
 
-    @staticmethod
+    @staticmethod # Guarda la columna, la busqueda y cargar los datos filtrados
     def search_data(query, search_column, frame_right, clear_frame_right, app):
         AdminUsuarios.query = query
         AdminUsuarios.search_column = search_column
@@ -250,7 +234,7 @@ class AdminUsuarios:
         AdminUsuarios.current_page = 1
         AdminUsuarios.load_data(frame_right, clear_frame_right, app)
 
-    @staticmethod
+    @staticmethod # Hace consulta y crea la tabla con los datos.
     def load_data(frame_right, clear_frame_right, app):
         db_path = "bd/Users.sqlite"
         try:
@@ -284,28 +268,30 @@ class AdminUsuarios:
             print("Error al cargar datos:", e)
 
 
-    @staticmethod
+    @staticmethod # Resetea busqueda y vuelve a pagina 1
     def clear_search(frame_right, clear_frame_right, app):
         AdminUsuarios.Filtro = False
         AdminUsuarios.query = ""
         AdminUsuarios.current_page = 1
         AdminUsuarios.abrir_admin(frame_right, clear_frame_right, app)
 
-    @staticmethod
+    @staticmethod # Cambia la página
     def change_page(direction, frame_right, clear_frame_right, app):
         AdminUsuarios.current_page += direction
         AdminUsuarios.load_data(frame_right, clear_frame_right, app)
 
-    @staticmethod
+    @staticmethod # Carga los datos y crea la tabla
     def abrir_admin(frame_right, clear_frame_right, app):
         AdminUsuarios.load_data(frame_right, clear_frame_right, app)
 
     @staticmethod
     def get_db_column_from_display_name(display_name):
+        # Recorre el diccionario de mapeo entre nombres de base de datos y nombres mostrados en la interfaz
         for db_col, disp_name in AdminUsuarios.column_name_map.items():
             if disp_name == display_name:
-                return db_col
-        return display_name  # fallback en caso de no encontrarlo
+                return db_col  # Si encuentra coincidencia, devuelve el nombre real de columna en la base de datos
+
+        return display_name  # Si no encuentra el display_name, lo devuelve tal cual (por si ya es un nombre de columna válido)
 
     @staticmethod
     def add_user(frame_right, clear_frame_right, app):
@@ -322,6 +308,7 @@ class AdminUsuarios:
         appAdd = ctk.CTk()
         AdminUsuarios.ventanas_secundarias.append(appAdd)
 
+        #icono
         if sys.platform == "win32":
             import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
@@ -332,7 +319,7 @@ class AdminUsuarios:
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
 
-        # Tamaño relativo a la pantalla
+        # tamaño relativo a la pantalla, colocamos ventana
         monitors = screeninfo.get_monitors()
         main_monitor = next((m for m in monitors if m.is_primary), monitors[0])
         window_width = int(main_monitor.width * 0.55)
@@ -342,6 +329,7 @@ class AdminUsuarios:
         appAdd.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
         appAdd.resizable(False, False)
 
+        # fuentes
         fuente_labels = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.022))
         fuente_boton = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.03))
         fuente_titulo = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.045))
@@ -360,7 +348,7 @@ class AdminUsuarios:
 
         entradas = []
 
-        for campo in campos:
+        for campo in campos: # Por cada campo, creamos una fila (frame), con su respectivo label y entry u optionMenu
             fila = ctk.CTkFrame(scroll_frame, fg_color="transparent")
             fila.pack(fill="x", padx=int(window_height // 18.5), pady=int(window_height * 0.015))
 
@@ -383,7 +371,7 @@ class AdminUsuarios:
                 entry_ruta.pack(side="left", fill="x", expand=True)
                 entradas.append(entry_ruta)
 
-                def seleccionar_archivo():
+                def seleccionar_archivo(): # eliges el archivo y cambias el formato de la ruta
                     ruta_origen = filedialog.askopenfilename(
                         title="Selecciona una imagen",
                         filetypes=(("Archivos de imagen", "*.png *.jpg *.jpeg *.bmp *.gif"), ("Todos los archivos", "*.*"))
@@ -394,13 +382,11 @@ class AdminUsuarios:
                             messagebox.showerror("Error", "Introduce primero el Nombre de Usuario antes de seleccionar la imagen.", parent=appAdd)
                             return
 
-                        import os
-                        import shutil
-
                         carpeta_destino = "imagenes_usuarios"
                         if not os.path.exists(carpeta_destino):
                             os.makedirs(carpeta_destino)
 
+                        # Creas el nombre de la ruta
                         extension = os.path.splitext(ruta_origen)[1]
                         nuevo_nombre = f"{nombre_usuario}{extension}"
                         ruta_destino = os.path.join(carpeta_destino, nuevo_nombre)
@@ -428,8 +414,8 @@ class AdminUsuarios:
                 entry.bind("<FocusIn>", lambda event, e=entry: AdminUsuarios.on_focus_in_entry(e))
                 entry.bind("<FocusOut>", lambda event, e=entry: AdminUsuarios.on_focus_out_entry(e))
 
-        def guardar_nuevo_user():
-            valores = []
+        def guardar_nuevo_user(): # Guardamos nuevo usuario
+            valores = [] # Array vacio, meteremos los valores
 
             for idx, entrada in enumerate(entradas):
                 label = campos[idx].replace(" ", "").replace("º", "").replace("-", "")
@@ -445,7 +431,8 @@ class AdminUsuarios:
 
             username = valores[0]
             password = valores[1]
-
+            
+            #Comprobar que haya Username y Contraseña
             if not username:
                 messagebox.showerror("Error de Validación", "El campo 'Nombre de Usuario' no puede estar vacío.", parent=appAdd)
                 return
@@ -454,7 +441,7 @@ class AdminUsuarios:
                 messagebox.showerror("Error de Validación", "El campo 'Contraseña' no puede estar vacía.", parent=appAdd)
                 return
 
-            try:
+            try: # Meterlo a la BD
                 with sqlite3.connect("bd/Users.sqlite") as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
@@ -484,7 +471,7 @@ class AdminUsuarios:
         )
         boton_guardar.pack(pady=int(window_height * 0.03))
         
-        def on_closing():
+        def on_closing(): # Cerrar la ventana
             AdminUsuarios.ventana_abierta = False
             AdminUsuarios.ventanas_secundarias.remove(appAdd)
             appAdd.destroy()
@@ -498,6 +485,7 @@ class AdminUsuarios:
     default_border_color = "#565b5e"  # Color del borde por defecto
     default_fg_color = "#181818"  # Color de fondo por defecto
     
+    # focus para entrys
     def on_focus_in_entry(entry):
         entry.configure(border_color=AdminUsuarios.highlight_color)
         entry.configure(fg_color="#181818")
@@ -506,7 +494,7 @@ class AdminUsuarios:
         entry.configure(border_color=AdminUsuarios.default_border_color)
         entry.configure(fg_color=AdminUsuarios.default_fg_color)
 
-    @staticmethod
+    @staticmethod # Editar un usuario existente
     def edit_user(dni_cif, frame_right, clear_frame_right, app):
         if AdminUsuarios.ventana_abierta:
             messagebox.showerror(
@@ -558,13 +546,13 @@ class AdminUsuarios:
 
         appModify.resizable(False, False)
 
-        # Definir la fuente relativa para labels y botones
-        fuente_labels = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.022))  # Fuente más pequeña
-        fuente_boton = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.03))  # Fuente del botón más pequeña
+        # Definir la fuente relativa para textos y botones
+        fuente_labels = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.022))
+        fuente_boton = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.03))
         fuente_titulo = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.045))
 
         padding_relativo = int(window_height * 0.02)  # Ajustamos el padding a un valor relativo al tamaño de la ventana
-        main_frame = ctk.CTkFrame(appModify, fg_color="#373737", corner_radius=0)  # Color de fondo cambiado
+        main_frame = ctk.CTkFrame(appModify, fg_color="#373737", corner_radius=0)
         main_frame.pack(pady=padding_relativo, padx=padding_relativo, fill="both", expand=True)
 
         titulo = ctk.CTkLabel(main_frame, text="Editar Usuario", font=fuente_titulo, text_color="white")
@@ -586,7 +574,7 @@ class AdminUsuarios:
 
         entradas = []
 
-        for idx, (texto, valor) in enumerate(campos):
+        for idx, (texto, valor) in enumerate(campos): # Creamos por cada campo una fila y sus labels y entrys.
             fila = ctk.CTkFrame(scroll_frame, fg_color="transparent")
             fila.pack(fill="x", padx=int(window_height // 18.5), pady=int(window_height * 0.015))  # Padding relativo
 
@@ -597,13 +585,13 @@ class AdminUsuarios:
                 opciones = ["admin", "usuario"]
                 option_menu = ctk.CTkOptionMenu(
                     fila, values=opciones,
-                    button_color="#990404",  # Color del botón del OptionMenu
-                    button_hover_color="#540303",  # Hover del OptionMenu
-                    fg_color="#181818",  # Fondo gris oscuro del OptionMenu
-                    dropdown_fg_color="#181818",  # Fondo negro en la lista del OptionMenu
-                    font=fuente_labels,  # Fuente de texto del OptionMenu
+                    button_color="#990404",
+                    button_hover_color="#540303",
+                    fg_color="#181818",
+                    dropdown_fg_color="#181818",
+                    font=fuente_labels,
                 )
-                option_menu.set(valor)  # Usamos el método `set()` para seleccionar el valor
+                option_menu.set(valor)  # Usamos el método set para seleccionar el valor
                 option_menu.pack(side="left", fill="x", expand=True)
                 entradas.append(option_menu)
 
@@ -618,7 +606,7 @@ class AdminUsuarios:
                 entry_ruta.pack(side="left", fill="x", expand=True)
                 entradas.append(entry_ruta)
 
-                def seleccionar_archivo():
+                def seleccionar_archivo(): # Misma logica que en add_user, cogemos el archivo y le cambiamos la ruta
                     ruta_origen = filedialog.askopenfilename(
                         title="Selecciona una imagen",
                         filetypes=(("Archivos de imagen", "*.png *.jpg *.jpeg *.bmp *.gif"), ("Todos los archivos", "*.*"))
@@ -737,7 +725,7 @@ class AdminUsuarios:
                 messagebox.showerror("Error de Base de Datos", f"Ocurrió un error al guardar los cambios:\n{e}")
 
                 
-        def on_closing():
+        def on_closing(): # Cerramos la ventana
             AdminUsuarios.ventana_abierta = False
             AdminUsuarios.ventanas_secundarias.remove(appModify)
             appModify.destroy()
@@ -746,14 +734,14 @@ class AdminUsuarios:
         appModify.bind("<Return>", lambda event: guardar_cambios(dni_cif))
         appModify.mainloop()
 
-    @staticmethod
-    def on_item_selected(tree):
+    @staticmethod # Para seleccionar un usuario de la tabla
+    def on_item_selected(tree): 
         selected_item = tree.selection()
         if selected_item:
             AdminUsuarios.selected_user = tree.item(selected_item, "values")[0]
     
 
-    @staticmethod
+    @staticmethod # borrar usuario
     def delete_User(selected_dni, frame_right, clear_frame_right, app):
         if not selected_dni:
             messagebox.showwarning("Aviso", "Selecciona un usuario para borrar.")
