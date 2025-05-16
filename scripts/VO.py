@@ -1357,7 +1357,7 @@ class VO:
             hover_color="#540303",
             command=lambda: toggle_check("predef")
         )
-        check_predefinido.pack(anchor="w", pady=(0, int(5 * escala_h)))
+        check_predefinido.pack(anchor="w", pady=(0, int(7 * escala_h)))
 
         check_personalizado = ctk.CTkCheckBox(
             frame_checks,
@@ -1368,7 +1368,7 @@ class VO:
             hover_color="#540303",
             command=lambda: toggle_check("personal")
         )
-        check_personalizado.pack(anchor="w")
+        check_personalizado.pack(anchor="w", pady=(0, int(7 * escala_h)))
 
         check_grafico = ctk.CTkCheckBox(
             frame_checks,
