@@ -8,22 +8,25 @@ import screeninfo
 
 class Login:
     def __init__(self):
+        # Creo la ventana del login 
         self.app = ctk.CTk()
         self.app.title("IDENTIFICACIÓN - HGC")
         self.icon_path = "resources/logos/icon_logo.ico"
 
+        # Asociamos el icono personalizado al proceso para que lo detecte bien
         if sys.platform == "win32":
             import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             self.app.iconbitmap(self.icon_path)
 
+        # Cojo monitor principal para sacar sus dimensiones
         monitors = screeninfo.get_monitors()
         main_monitor = next((m for m in monitors if m.is_primary), monitors[0])
         screen_width = main_monitor.width
         screen_height = main_monitor.height
 
-        # Cambios aquí: ventana más pequeña
+        # Creo mis tamaños 
         window_width = int(screen_width * 0.3)
         window_height = int(screen_height * 0.6)
         x_position = (screen_width - window_width) // 2
@@ -31,11 +34,12 @@ class Login:
         self.app.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
         self.app.resizable(False, False)
 
-        # Cambios aquí: escala en base al monitor, no a la ventana
+        # Tamaños diferentes para poder ajustar mejor
         scale_factor = 0.58 
         scale_w = (screen_width / 1920) * scale_factor
         scale_h = (screen_height / 1080) * scale_factor
 
+        # metemos los tamaños
         font_size = int(32 * scale_h)
         entry_width = int(700 * scale_w)
         entry_height = int(50 * scale_h)
@@ -43,13 +47,14 @@ class Login:
         eye_icon_size = int(30 * scale_h)
         logo_width = int(screen_width * 0.2)
 
+        # Fuente
         self.fuente_custom = ctk.CTkFont(family="Sans Sulex", size=font_size, weight="bold")
 
         # Fondo principal
         self.main_frame = ctk.CTkFrame(self.app, fg_color="#1a1a1a", corner_radius=0)
         self.main_frame.pack(pady=int(50 * scale_h), padx=int(30 * scale_w), fill="both", expand=True)
 
-        # Imagen principal centrada
+        # Logo de la empresa en el login 
         try:
             img = Image.open("resources/logos/hgcmetal.png")
             image_width = img.width * 2.2
@@ -57,7 +62,7 @@ class Login:
             image_height = int(logo_width * aspect_ratio)
             image = ctk.CTkImage(light_image=img, size=(logo_width, image_height))
             image_label = ctk.CTkLabel(self.main_frame, image=image, text="")
-            image_label.pack(pady=(0, int(30 * scale_h)))
+            image_label.pack(pady=(int(40 * scale_h), int(40 * scale_h)))
         except Exception as e:
             print(f"Error al cargar la imagen principal:", e)
 

@@ -1,11 +1,11 @@
 from PIL import Image, ImageTk, ImageDraw
 import customtkinter as ctk
 from tkinter import messagebox, filedialog
-import tkinter.font as tkFont
-import argparse  # Importar argparse para procesar argumentos de línea de comandos
+import argparse  
 import screeninfo
 import os
 import sys
+import shutil
 import sqlite3
 import subprocess
 import platform
@@ -15,7 +15,6 @@ from scripts.FunAcreedor import Acreedor
 from scripts.configuracion import Configuracion
 from scripts.admin_usuarios import AdminUsuarios
 from scripts.VO import VO
-from scripts.login import Login
 from scripts.Facturacion import Facturacion
 
 # -------------------- Argumentos de línea de comandos --------------------
@@ -33,7 +32,7 @@ parser.add_argument("--rutaImagen", type=str, help="Ruta de la imagen")
 # Parsear los argumentos
 args = parser.parse_args()
 
-# Acceder a los datos del usuario
+# Acceder a los datos del usuario que provienen del login
 user_data = {
     "UserName": args.UserName,
     "Password": args.Password,
@@ -44,14 +43,12 @@ user_data = {
     "rutaImagen": args.rutaImagen
 }
 
-# Guardar el tipo de usuario
+# Guardar el tipo de usuario para despues conceder permisos
 user_type = args.User_Type or "Usuario Desconocido"
 
-print("Usuario conectado:", user_data)
+perfil_frame = None 
 
-perfil_frame = None  # Para controlar el frame desplegable del perfil
-
-# Crear la ventana principal
+#------------------------ Creamos la ventana principal ----------------------
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
@@ -59,7 +56,7 @@ app = ctk.CTk()
 
 icon_path = "resources/logos/icon_logo.ico"
 
-# Obtener el monitor principal
+# Obtener el monitor principal para obtener sus dimensiones
 monitors = screeninfo.get_monitors()
 main_monitor = next((m for m in monitors if m.is_primary), monitors[0])
 main_monitor_ancho = main_monitor.width
@@ -76,10 +73,10 @@ x_position = (main_monitor.width - window_width) // 2
 y_position = (main_monitor.height - window_height) // 2
 app.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
 
-# Crear la fuente personalizada después de haber definido window_height
+# Crear la fuente personalizada 
 fuente_custom = ctk.CTkFont(family="Audiowide")
 
-# Para cambiar el icono de la barra de tareas en Windows
+# Asociamos el icono personalizado al proceso para que lo detecte bien
 if sys.platform == "win32":
     import ctypes
     myappid = "mycompany.myapp.sellcars.1.0"
@@ -89,18 +86,21 @@ if sys.platform == "win32":
 def maximize():
     app.state("zoomed")
 
+app.resizable(True, True)
 app.after(100, maximize)
 app.title("Menú Principal")
 
 perfil_window = None
 # -------------------- Frame superior (barra de herramientas) --------------------
 
+# Definimos el frame top
 frame_top = ctk.CTkFrame(app, height=int(window_height*0.3), corner_radius=0, fg_color="#990404")
 frame_top.pack(fill="x", side="top")
 
 frame_top.columnconfigure(0, weight=0)
 frame_top.columnconfigure(1, weight=1)
 
+# Boton con el logo (home)
 image_path = "resources/logos/hgcblanco.png"
 img = Image.open(image_path)
 image_width = int((window_width * 0.5) // 2.5)
@@ -111,6 +111,7 @@ img = ImageTk.PhotoImage(img)
 logo_label = ctk.CTkLabel(frame_top, image=img, text="", cursor="hand2")
 logo_label.grid(row=0, column=0, padx=int(window_width/20), pady=10)
 
+# Metodo para volver a home
 def go_home(event=None):
     global active_button
 
@@ -119,24 +120,26 @@ def go_home(event=None):
     frame_label.image = frame_photo
     frame_label.place(relwidth=1, relheight=1)
 
-    # 🔥 Cerrar cualquier ventana externa abierta
+    # Cerrar cualquier ventana externa abierta
     cerrar_ventanas_externas(excluir=None)
 
-    # 🔥 Deseleccionar cualquier botón activo
+    # Deseleccionar cualquier botón activo
     if active_button:
         active_button.configure(fg_color=COLOR_NORMAL, border_width=0)
         active_button = None
 
 logo_label.bind("<Button-1>", go_home)
 
+# Metodo para abrir el apartado de informacion de usuario
 def mostrar_perfil_usuario():
-    """Muestra una ventana modal anclada a la app con la información del usuario y opción de cerrar sesión."""
     global perfil_window
 
+    # "Elevar la ventana"
     if perfil_window and perfil_window.winfo_exists():
         perfil_window.lift()
         return
 
+    # Definir la ventana
     perfil_window = ctk.CTkToplevel(app)
     perfil_window.title("Información del Usuario")
     perfil_window.transient(app)
@@ -144,6 +147,7 @@ def mostrar_perfil_usuario():
     perfil_window.focus_force()
     perfil_window.resizable(False, False)
 
+    # Colocar la ventana centrada en la pantalla basandome en el tamaño de la pantalla
     win_w = int(window_width * 0.60)
     win_h = int(window_height * 0.9)
     app.update_idletasks()
@@ -152,6 +156,7 @@ def mostrar_perfil_usuario():
     perfil_window.geometry(f"{win_w}x{win_h}+{x}+{y}")
     perfil_window.configure(bg="#1e1e1e")
 
+    # Fuentes para los diferentes apartados
     title_font = ctk.CTkFont(family="Sans Sulex", size=int(win_h * 0.05), weight="bold")
     label_font = ctk.CTkFont(family="Sans Sulex", size=int(win_h * 0.03))
     button_font = ctk.CTkFont(family="Sans Sulex", size=int(win_h * 0.035))
@@ -166,6 +171,7 @@ def mostrar_perfil_usuario():
     ruta_default = "imagenesCoches/noImage.jpg"
     ruta_img = user_data.get("rutaImagen", ruta_default)
 
+    # Metodo para acceder a la imagen del usuario
     def crear_imagen_perfil(ruta):
         try:
             ruta_default = "imagenesCoches/noImage.jpg"  # Ruta predeterminada
@@ -179,6 +185,7 @@ def mostrar_perfil_usuario():
             img = Image.open(ruta).convert("RGBA")
             img = img.resize((big_size, big_size), Image.Resampling.LANCZOS)
 
+            # Dibujo un borde circular  
             mask = Image.new("L", (big_size, big_size), 0)
             draw = ImageDraw.Draw(mask)
             draw.ellipse((0, 0, big_size, big_size), fill=255)
@@ -186,28 +193,26 @@ def mostrar_perfil_usuario():
             circular_img = Image.new("RGBA", (big_size, big_size), (0, 0, 0, 0))
             circular_img.paste(img, (0, 0), mask)
 
+            # Transformo la imagen en circular y la añado dentro
             bordered_size = big_size + 2 * big_border
             bordered_img = Image.new("RGBA", (bordered_size, bordered_size), (0, 0, 0, 0))
             draw = ImageDraw.Draw(bordered_img)
             draw.ellipse((0, 0, bordered_size, bordered_size), fill=(255, 255, 255, 255))
             bordered_img.paste(circular_img, (big_border, big_border), circular_img)
-
+            
             final_img = bordered_img.resize((profile_img_size + 2 * borde_blanco, profile_img_size + 2 * borde_blanco), Image.Resampling.LANCZOS)
             return ImageTk.PhotoImage(final_img)
         except Exception as e:
             print(f"Error al crear imagen de perfil: {e}")
             return None
 
-
+    # Metemos la imagen correspondiente
     if os.path.exists(ruta_img):
         perfil_window.profile_photo = crear_imagen_perfil(ruta_img)
     else:
         perfil_window.profile_photo = crear_imagen_perfil(ruta_default)
 
-    import shutil
-    from tkinter import messagebox
-
-
+    # Metodo para transformar la ruta de la imagen seleccionada
     def seleccionar_imagen():
         ruta_origen = filedialog.askopenfilename(
             title="Selecciona una imagen",
@@ -217,18 +222,20 @@ def mostrar_perfil_usuario():
         if ruta_origen:
             nombre_usuario = user_data.get("UserName", "").strip()
             if not nombre_usuario:
-                messagebox.showerror("Error", "No se encontr贸 el nombre de usuario. No se puede guardar la imagen.", parent=perfil_window)
+                messagebox.showerror("Error", "No se encontró el nombre de usuario. No se puede guardar la imagen.", parent=perfil_window)
                 return
 
             carpeta_destino = "imagenes_usuarios"
             if not os.path.exists(carpeta_destino):
                 os.makedirs(carpeta_destino)
 
+            # Creamos la nueva ruta para la imagen
             extension = os.path.splitext(ruta_origen)[1]
             nuevo_nombre = f"{nombre_usuario}{extension}"
             ruta_destino = os.path.join(carpeta_destino, nuevo_nombre)
 
             try:
+                # Cambio la variable que va asociada al dato en la BD (la imagen)
                 shutil.copyfile(ruta_origen, ruta_destino)
                 user_data["rutaImagen"] = ruta_destino
 
@@ -238,7 +245,7 @@ def mostrar_perfil_usuario():
                 cursor.execute("UPDATE Usuarios SET rutaImagen = ? WHERE UserName = ?", (ruta_destino, nombre_usuario))
                 conn.commit()
 
-                # Actualizar imagen en la UI
+                # Actualizar imagen en la interfaz de la ventana
                 nueva_foto = crear_imagen_perfil(ruta_destino)
                 if nueva_foto:
                     perfil_window.profile_photo = nueva_foto
@@ -255,6 +262,7 @@ def mostrar_perfil_usuario():
     profile_photo_label.pack(pady=(int(win_h * 0.02), int(win_h * 0.05)))
     profile_photo_label.bind("<Button-1>", lambda e: seleccionar_imagen())
 
+    # Datos del usuario
     nombre = user_data.get("Nombre", "")
     apellidos = f"{user_data.get('Apellido1', '')} {user_data.get('Apellido2', '')}".strip()
     username = user_data.get("UserName", "")
@@ -266,6 +274,7 @@ def mostrar_perfil_usuario():
         f"Tipo de usuario: {rol}"
     ]
 
+    # Imprimo los datos en la ventana
     for texto in datos:
         ctk.CTkLabel(container, text=texto, text_color="#FFFFFF", font=label_font).pack(pady=(int(win_h * 0.01), int(win_h * 0.02)))
 
@@ -282,10 +291,8 @@ def mostrar_perfil_usuario():
         command=cerrar_sesion
     ).pack(pady=(int(win_h * 0.05), int(win_h * 0.05)))
 
-
-
+# Metodo para cerrar la app y volver al login
 def cerrar_sesion():
-    """Cierra la ventana actual y vuelve al login."""
     global perfil_window
     
     # Cerrar la ventana de perfil si existe
@@ -293,13 +300,13 @@ def cerrar_sesion():
         perfil_window.destroy()
     
     cerrar_todo()    
+
     # Reiniciar el login
     iniciar_login()
 
-
+# Metodo para ejecutar el login
 def iniciar_login():
     os.system("python scripts/login.py")
-
 
 # Proporciones relativas para el tamaño del botón
 button_width = int(window_width * 0.06)
@@ -309,14 +316,14 @@ button_height = int(window_height * 0.08)
 COLOR_NORMAL = "#990404"
 COLOR_HOVER = "#540303"
 
-# Cargar imagen del botón de la carpeta
 folder_img = Image.open("resources/icons/white/folder.png")
 folder_img = folder_img.resize((int(button_width * 0.65), int(button_height * 0.65)), Image.Resampling.LANCZOS)
 folder_img = ImageTk.PhotoImage(folder_img)
 
-# Variable global para manejar el estado de la ventana abierta
+# Variable global para manejar el estado de la ventana abierta de las carpetas
 carpeta_proceso = None
 
+# Metodo para acceder a la carpeta de informes
 def abrir_carpeta_informes():
     global carpeta_proceso
     ruta_carpeta = "informes"
@@ -329,6 +336,7 @@ def abrir_carpeta_informes():
                 pass
             carpeta_proceso = None
         carpeta_proceso = subprocess.Popen(f'explorer "{os.path.abspath(ruta_carpeta)}"')
+
     elif platform.system() == "Darwin":  # macOS
         subprocess.call(["open", ruta_carpeta])
     elif platform.system() == "Linux":
@@ -340,7 +348,7 @@ def abrir_carpeta_informes():
 folder_button = ctk.CTkButton(
     frame_top,
     fg_color=COLOR_NORMAL,
-    hover_color=COLOR_HOVER,  # Color al pasar el cursor
+    hover_color=COLOR_HOVER,
     image=folder_img,
     text="",
     width=button_width,
@@ -349,7 +357,6 @@ folder_button = ctk.CTkButton(
 )
 folder_button.grid(row=0, column=1, padx=10, pady=10, sticky="e")
 
-# Cargar imagen del botón de perfil
 profile_img = Image.open("resources/icons/white/User.png")
 profile_img = profile_img.resize((int(button_width * 0.8), int(button_height * 0.8)), Image.Resampling.LANCZOS)
 profile_img = ImageTk.PhotoImage(profile_img)
@@ -358,7 +365,7 @@ profile_img = ImageTk.PhotoImage(profile_img)
 profile_button = ctk.CTkButton(
     frame_top,
     fg_color=COLOR_NORMAL,
-    hover_color=COLOR_HOVER,  # Color al pasar el cursor
+    hover_color=COLOR_HOVER,
     image=profile_img,
     text="",
     width=button_width,
@@ -384,6 +391,7 @@ frame_label.place(relwidth=1, relheight=1)
 # -------------------- Crear botones de menú --------------------
 def create_menu_button(frame, text, img_path, row, command=None):
 
+    # Tamaño, fuente e imagen para el botón
     fuente_custom = ctk.CTkFont(family="Toxigenesis Rg", size=int(window_height * 0.032))
     button_width = int(window_width * 0.25)
     button_height = int(window_height * 0.12)
@@ -394,6 +402,7 @@ def create_menu_button(frame, text, img_path, row, command=None):
     img = Image.open(img_path).resize((img_width, img_height), Image.Resampling.LANCZOS)
     img = ImageTk.PhotoImage(img)
 
+    # Definimos el botón 
     button = ctk.CTkButton(
         frame,
         text=text,
@@ -412,6 +421,7 @@ def create_menu_button(frame, text, img_path, row, command=None):
     button.grid(row=row, column=0, padx=10, pady=vertical_padding, sticky="ew")
     return button
 
+# Creo los botones con el metodo 
 VO_Button = create_menu_button(frame_left, "Vehículo Ocasión", "resources/icons/white/VO.png", 0)
 Cliente_Button = create_menu_button(frame_left, "Clientes", "resources/icons/white/Cliente.png", 1)
 Proveedor_Button = create_menu_button(frame_left, "Proveedores", "resources/icons/white/proveedores.png", 2)
@@ -447,6 +457,7 @@ def validar_permisos(button, action):
         )
 
 # -------------------- Gestión de ventanas abiertas --------------------
+# Cerrar todas las ventanas si cierro la app
 def cerrar_todo():
     for clase in (Proveedor, Cliente, Acreedor, VO, Facturacion, AdminUsuarios):
         for ventana in getattr(clase, "ventanas_secundarias", []):
@@ -457,6 +468,7 @@ def cerrar_todo():
         clase.ventanas_secundarias.clear()
     app.destroy()
 
+# Cerrar ventanas secudarias si cambio de botón (función)
 def cerrar_ventanas_externas(excluir=None):
     for clase in (Proveedor, Cliente, Acreedor, VO, Facturacion, AdminUsuarios):
         if clase == excluir:
@@ -472,6 +484,7 @@ def cerrar_ventanas_externas(excluir=None):
 app.protocol("WM_DELETE_WINDOW", cerrar_todo)
 
 # -------------------- Eventos --------------------
+# Hovers
 def on_hover(button):
     def on_enter(event):
         if button == active_button:
@@ -488,10 +501,12 @@ def on_hover(button):
     button.bind("<Enter>", on_enter)
     button.bind("<Leave>", on_leave)
 
+# Limpiar el frame right para redibujar después
 def clear_frame_right():
     for widget in frame_right.winfo_children():
         widget.destroy()
 
+# Asginar funciones a cada botón
 buttons = [
     (VO_Button, lambda: VO.abrir_VO(frame_right, clear_frame_right, app)),
     (Cliente_Button, lambda: Cliente.abrir_cliente(frame_right, clear_frame_right, app)),
@@ -509,7 +524,7 @@ COLOR_HOVER = "#540303"
 COLOR_ACTIVO = "#540303"
 COLOR_HOVER_ACTIVO = "#3b0202"
 
-# 🔁 Relación botón <-> clase para saber cuál es el módulo activo
+# Relación botón <-> clase para saber cuál es el módulo activo
 boton_clase_map = {
     VO_Button: VO,
     Cliente_Button: Cliente,
@@ -520,6 +535,7 @@ boton_clase_map = {
     Manual_Button: Configuracion
 }
 
+# Hacer que el click ejecute la acción
 def on_click(action, button):
     def wrapper(event):
         global active_button
