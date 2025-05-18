@@ -91,8 +91,7 @@ class Proveedor:
         btn_hover = "#16466e"
         icon_size = (int(rel_size * 3), int(rel_size * 2))
         
-        #Barra dr Búsqueda
-         #Barra dr Búsqueda
+        #Barra de Búsqueda
         search_frame = ctk.CTkFrame(main_frame, fg_color="transparent", corner_radius=int(rel_size // 2))
         search_frame.pack(fill="x", padx=rel_size // 6, pady=rel_size // 6)
         
@@ -141,8 +140,6 @@ class Proveedor:
                                             command=lambda: Proveedor.clear_search(frame_right, clear_frame_right, app))
         clear_search_button.pack(side="left", padx=rel_size // 1.5)
 
-
-#PICHA
         # 🔹 Frame desplegable principal
         column_filter_frame = ctk.CTkFrame(frame_right, fg_color="black", corner_radius=15, width=300)
         filter_open = [False]  # Para mutabilidad
