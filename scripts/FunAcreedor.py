@@ -12,9 +12,16 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from textwrap import wrap
-from datetime import datetime
+from functools import partial
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from babel.dates import format_datetime
+import ctypes
+
 
 class Acreedor:
+    
+    # Definimos variables base
     current_page = 1
     rows_per_page = 20
     visible_columns = None
@@ -26,11 +33,16 @@ class Acreedor:
     ventana_abierta = False  
     icon_path = "resources/logos/icon_logo.ico"
     ventanas_secundarias = []
+    
+    highlight_color = "#c91706"  # Color cuando se selecciona (borde)
+    default_border_color = "#565b5e"  # Color del borde por defecto
+    default_fg_color = "#181818"  # Color de fondo por defecto
 
     sort_column = None
-    sort_order = "asc"  # o "DESC"
+    sort_order = "asc"  
     sort_states = {}  # Diccionario: {"columna": "asc" | "desc" | None}
 
+    # todos los datos de la BD
     column_name_map = {
         "dni_cif": "DNI / CIF",
         "nombre": "Nombre",
@@ -50,6 +62,7 @@ class Acreedor:
         "email1": "Email 1",
     }
 
+    # datos que muestra la tabla
     column_options = {
         "dni_cif": "DNI / CIF",
         "nombre": "Nombre",
@@ -63,6 +76,7 @@ class Acreedor:
         "idioma": "Idioma",
     }
 
+    # metodo para crear la tabla
     @staticmethod
     def create_table(query, columns, data, frame_right, app, clear_frame_right, total_pages, Filtro):
         for widget in frame_right.winfo_children():
@@ -72,22 +86,22 @@ class Acreedor:
         total_width = app.winfo_width()
         rel_size = total_width / 100
 
-        # 👇 Esta es la lista completa de columnas
+        # Esta es la lista completa de columnas
         all_columns = [
             "dni_cif", "nombre", "apellido1", "apellido2", "direccion", "codigopostal", "ciudad", "idioma", "pais",
             "telefono1", "telefono2", "telefono3", "telefono4", "fax1", "fax2", "email1"
         ]
 
-        # 👇 Usamos all_columns como respaldo si columns está vacío
+        # Usamos all_columns como respaldo si columns está vacío
         columns = columns or all_columns
 
-        # 👇 Solo se establece visible_columns si aún no hay
+        # Solo se establece visible_columns si aún no hay
         if Acreedor.visible_columns is None or not Acreedor.visible_columns:
             Acreedor.visible_columns = ["dni_cif", "nombre", "apellido1", "apellido2", "direccion", "ciudad",
                                         "telefono1", "fax1", "email1", "idioma"]
 
 
-        # 🔒 Contenedor invisible principal
+        # Contenedor invisible principal
         main_container = ctk.CTkFrame(frame_right, fg_color="#3d3d3d")
         main_container.place_forget()
 
@@ -98,7 +112,7 @@ class Acreedor:
         btn_hover = "#16466e"
         icon_size = (int(rel_size * 3), int(rel_size * 2))
 
-         #Barra dr Búsqueda
+        #Barra dr Búsqueda
         search_frame = ctk.CTkFrame(main_frame, fg_color="transparent", corner_radius=int(rel_size // 2))
         search_frame.pack(fill="x", padx=rel_size // 6, pady=rel_size // 6)
         
@@ -136,8 +150,6 @@ class Acreedor:
                                     )
         search_plus_button.pack(side="left", padx=rel_size // 1.5)
         
-        #Busqueda normal
-
         refresh_image = Image.open("resources/icons/white/refresh.png").resize(icon_size)
         refresh_image = ctk.CTkImage(light_image=refresh_image)
         clear_search_button = ctk.CTkButton(search_frame, text="", image=refresh_image, fg_color=btn_color,
@@ -147,10 +159,10 @@ class Acreedor:
                                             command=lambda: Acreedor.clear_search(frame_right, clear_frame_right, app))
         clear_search_button.pack(side="left", padx=rel_size // 1.5)
         
-        # 🔹 Frame desplegable principal
+        # Frame desplegable principal
         column_filter_frame = ctk.CTkFrame(frame_right, fg_color="black", corner_radius=15, width=300)
         filter_open = [False]  # Para mutabilidad
-        # 🔹 Frame para el botón fijo en la parte de abajo
+        # Frame para el botón fijo en la parte de abajo
         button_frame = ctk.CTkFrame(column_filter_frame, fg_color="black")
         button_frame.pack(anchor="w",side="bottom",fill="both")
 
@@ -165,11 +177,11 @@ class Acreedor:
             width=rel_size * 11
         )
         apply_button.pack(pady=rel_size // 5, padx=rel_size // 7)
-        # 🔹 Scrollable frame para los checkboxes
+        # Scrollable frame para los checkboxes
         checkbox_scroll_frame = ctk.CTkScrollableFrame(column_filter_frame, fg_color="black")
         checkbox_scroll_frame.pack(side="top", fill="both", expand=True)
 
-        # 🔹 Variables y checkboxes
+        # Variables y checkboxes
         selected_columns = {
             col: ctk.BooleanVar(value=(col in Acreedor.visible_columns)) for col in columns
         }
@@ -187,10 +199,10 @@ class Acreedor:
             )
             checkbox.pack(anchor="w", padx=int(rel_size // 3), pady=int(rel_size // 3))
       
-        # 🔹 Funciones toggle y apply
+        # Funciones toggle y apply
         def toggle_filter_dropdown():
-            padding_x = 0.015  # Márgenes horizontales (relativos)
-            padding_y = 0.02   # Márgenes verticales (relativos)
+            padding_x = 0.015  # Márgenes horizontales 
+            padding_y = 0.02   # Márgenes verticales
 
             if filter_open[0]:
                 column_filter_frame.place_forget()
@@ -214,7 +226,7 @@ class Acreedor:
             Acreedor.abrir_Acreedor(frame_right, clear_frame_right, app, mantener_filtro=True)
 
             
-        # 🔎 Botón filtros
+        # Botón filtros
         filter_image = Image.open("resources/icons/white/ojoblanco.png").resize(icon_size)
         filter_image = ctk.CTkImage(light_image=filter_image)
         filter_button = ctk.CTkButton(
@@ -303,16 +315,16 @@ class Acreedor:
         style.configure("Treeview",
                         font=("Sans Sulex", int(rel_size * 0.85)),
                         rowheight=altura_filas,
-                        background="black",         # ← fondo de las filas
-                        foreground="#ededed",         # ← texto blanco
-                        fieldbackground="black",    # ← fondo general
+                        background="black",         # fondo de las filas
+                        foreground="#ededed",         # texto blanco
+                        fieldbackground="black",    # fondo general
                         bordercolor="black"
                         )
 
         style.configure("Treeview.Heading",
                         font=("Sans Sulex", int(rel_size * 0.85)),
-                        foreground="#ededed",         # ← texto encabezado
-                        background="black",       # ← fondo encabezado
+                        foreground="#ededed",         # texto encabezado
+                        background="black",       # fondo encabezado
                         bordercolor="black",
                         padding=(rel_size // 2, rel_size // 2))
 
@@ -332,12 +344,11 @@ class Acreedor:
         tree.tag_configure('oddrow', background='black')     # Negro
 
 
-        from functools import partial
 
         for col in Acreedor.visible_columns:
             tree.heading(
                 col,
-                text=Acreedor.column_name_map.get(col, col),  # inicial, sin flecha
+                text=Acreedor.column_name_map.get(col, col), 
                 anchor="center",
                 command=partial( Acreedor.sort_column_click, col, tree, frame_right, clear_frame_right, app)
             )
@@ -348,9 +359,7 @@ class Acreedor:
             tree.heading(col, text=Acreedor.column_name_map.get(col, col), anchor="center")
             tree.column(col, width=int(rel_size * 9), anchor="center", stretch=False)
 
-        # Inserta filas con colores alternos
-
-##Picha Cambio Fecha-------------------------------------------------------------------------------------------------------------------
+#Cambio Fecha-------------------------------------------------------------------------------------------------------------------
         def format_date(value):
             try:
                 # Detecta si el valor es una fecha en formato yyyy-mm-dd o yyyy/mm/dd
@@ -366,7 +375,7 @@ class Acreedor:
         for i, row in enumerate(data):
             filtered_row = [row[columns.index(col)] for col in Acreedor.visible_columns]
             
-            # ➕ Formatea las fechas antes de mostrarlas
+            # Formatea las fechas antes de mostrarlas
             for j, col in enumerate(Acreedor.visible_columns):
                 if "fecha" in col.lower() and isinstance(filtered_row[j], str):
                     filtered_row[j] = format_date(filtered_row[j])
@@ -380,7 +389,7 @@ class Acreedor:
 
         tree.bind("<<TreeviewSelect>>", lambda event: Acreedor.on_item_selected(tree))
 
-        # ✅ MOSTRAR el frame principal una vez terminado
+        # MOSTRAR el frame principal una vez terminado
         main_container.place(relwidth=1.0, relheight=1.0)
 
         Acreedor.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)
@@ -483,7 +492,7 @@ class Acreedor:
         for db_col, disp_name in Acreedor.column_name_map.items():
             if disp_name == display_name:
                 return db_col
-        return display_name  # fallback en caso de no encontrarlo
+        return display_name  
 
     @staticmethod
     def add_Acreedor(frame_right, clear_frame_right, app):
@@ -501,7 +510,6 @@ class Acreedor:
         Acreedor.ventanas_secundarias.append(appAdd)
 
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAdd.iconbitmap(Acreedor.icon_path)
@@ -662,7 +670,6 @@ class Acreedor:
         Acreedor.ventanas_secundarias.append(appModify)
 
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appModify.iconbitmap(icon_path)
@@ -951,7 +958,6 @@ class Acreedor:
         # Icono
         icon_path = "resources/logos/icon_logo.ico"
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             try:
@@ -1026,16 +1032,6 @@ class Acreedor:
 
     @staticmethod
     def generar_informe_pdf_fijo(paginas, ruta_salida="informe_Acreedores.pdf"):
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import landscape, A4
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.lib.utils import ImageReader
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-        from textwrap import wrap
-        from datetime import datetime
-        from babel.dates import format_datetime
 
         columnas = [
             "DNI/CIF", "Nombre", "Apellido1", "Apellido2",
@@ -1140,16 +1136,6 @@ class Acreedor:
 
     @staticmethod
     def generar_informe_pdf(paginas, columnas, ruta_salida="informe_Acreedores.pdf"):
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import landscape, A4
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.lib.utils import ImageReader
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-        from textwrap import wrap
-        from datetime import datetime
-        from babel.dates import format_datetime
 
         font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
@@ -1239,8 +1225,6 @@ class Acreedor:
 
     @staticmethod
     def get_all_Acreedor_data():
-        import sqlite3  # o tu conexión real
-
         conn = sqlite3.connect("bd/BDSellCars1.db")  # cambia según uses
         cursor = conn.cursor()
 
@@ -1271,7 +1255,6 @@ class Acreedor:
         ctk.set_default_color_theme("dark-blue")
 
         if sys.platform == "win32":
-            import ctypes
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("mycompany.myapp.sellcars.1.0")
 
         icon_path = "resources/logos/icon_logo.ico"
@@ -1356,7 +1339,7 @@ class Acreedor:
                 data = cursor.fetchall()
                 conn.close()
 
-                # Todas las columnas, igual que en Cliente
+                # Todas las columnas
                 all_columns = [
                     "dni_cif", "nombre", "apellido1", "apellido2", "direccion", "codigopostal", "ciudad", "idioma", "pais",
                     "telefono1", "telefono2", "telefono3", "telefono4", "fax1", "fax2", "email1"
@@ -1434,7 +1417,6 @@ class Acreedor:
         Acreedor.ventanas_secundarias.append(appAddF)
 
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAddF.iconbitmap(Acreedor.icon_path)
@@ -1601,11 +1583,6 @@ class Acreedor:
         appAddF.bind("<Return>", lambda event: guardar_cambios())
         appAddF.mainloop()
 
-    highlight_color = "#c91706"  # Color cuando se selecciona (borde)
-    default_border_color = "#565b5e"  # Color del borde por defecto
-    default_fg_color = "#181818"  # Color de fondo por defecto
-
-
 
     @staticmethod
     def sort_by_column(column, frame_right, clear_frame_right, app):
@@ -1642,7 +1619,6 @@ class Acreedor:
 
     @staticmethod
     def refresh_treeview_headings(tree, frame_right, clear_frame_right, app):
-        from functools import partial
 
         for col in Acreedor.visible_columns:
             sort_state = Acreedor.sort_states.get(col)
@@ -1667,5 +1643,5 @@ class Acreedor:
     @staticmethod
     def sort_column_click(col, tree, frame_right, clear_frame_right, app):
         Acreedor.update_sort_state(col)
-        Acreedor.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)  # ← aquí
+        Acreedor.refresh_treeview_headings(tree, frame_right, clear_frame_right, app) 
         Acreedor.load_data(frame_right, clear_frame_right, app)

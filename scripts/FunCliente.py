@@ -12,9 +12,16 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from textwrap import wrap
-from datetime import datetime
+from functools import partial
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from babel.dates import format_datetime
+import ctypes
+import platform
 
 class Cliente:
+    
+    # Definimos variables base
     current_page = 1
     rows_per_page = 20
     visible_columns = None
@@ -28,10 +35,11 @@ class Cliente:
     ventanas_secundarias = []
     
     sort_column = None
-    sort_order = "asc"  # o "DESC"
+    sort_order = "asc" 
     sort_states = {}  # Diccionario: {"columna": "asc" | "desc" | None}
 
 
+    # todos los datos de la BD
     column_name_map = {
         "dni_cif": "DNI / CIF",
         "nombre": "Nombre",
@@ -58,6 +66,8 @@ class Cliente:
         "enviadoRGPD": "RGPD Enviado",
         "FechaEnvioRGPD": "Fecha Envío RGPD"
     }
+    
+    # datos que muestra la tabla
     column_options = {
         "dni_cif": "DNI / CIF",
         "nombre": "Nombre",
@@ -75,6 +85,7 @@ class Cliente:
     }
 
 
+    # metodo para crear la tabla
     @staticmethod
     def create_table(query, columns, data, frame_right, app, clear_frame_right, total_pages, Filtro):
         for widget in frame_right.winfo_children():
@@ -88,7 +99,7 @@ class Cliente:
             Cliente.visible_columns = ["dni_cif", "nombre", "apellido1", "apellido2", "direccion", "ciudad", 
                                                  "telefono1","fax1" ,"email1" ,"emaildefacturas","idioma","tipo_cliente","fechadeultimoemail","TieneRGPD"]
 
-        # 🔒 Crear contenedor invisible
+        #Crear contenedor invisible
         main_container = ctk.CTkFrame(frame_right, fg_color="#3d3d3d")
         main_container.place_forget()
 
@@ -153,7 +164,6 @@ class Cliente:
                                             command=lambda: Cliente.clear_search(frame_right, clear_frame_right, app))
         clear_search_button.pack(side="left", padx=rel_size // 1.5)
 
-#PICHA
         # Frame desplegable para la selección de columnas
         column_filter_frame = ctk.CTkFrame(frame_right, fg_color="black", corner_radius=15, width=300)
         filter_open = [False]
@@ -333,7 +343,7 @@ class Cliente:
         tree.tag_configure('oddrow', background='black')     # Negro
 
 
-        from functools import partial
+
 
         for col in Cliente.visible_columns:
             tree.heading(
@@ -351,7 +361,7 @@ class Cliente:
 
         # Inserta filas con colores alternos
 
-##Picha Cambio Fecha-------------------------------------------------------------------------------------------------------------------
+#Cambio Fecha-------------------------------------------------------------------------------------------------------------------
         def format_date(value):
             try:
                 # Detecta si el valor es una fecha en formato yyyy-mm-dd o yyyy/mm/dd
@@ -379,7 +389,7 @@ class Cliente:
         tree.pack(pady=rel_size // 1.5, fill="both", expand=True)
         tree.bind("<<TreeviewSelect>>", lambda event: Cliente.on_item_selected(tree))
 
-        # ✅ MOSTRAR el frame principal una vez terminado
+        #MOSTRAR el frame principal una vez terminado
         main_container.place(relwidth=1.0, relheight=1.0)
         Cliente.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)
 
@@ -488,7 +498,7 @@ class Cliente:
         for db_col, disp_name in Cliente.column_name_map.items():
             if disp_name == display_name:
                 return db_col
-        return display_name  # fallback en caso de no encontrarlo
+        return display_name 
 
     @staticmethod
     def add_client(frame_right, clear_frame_right, app):
@@ -506,7 +516,6 @@ class Cliente:
         Cliente.ventanas_secundarias.append(appAdd)
 
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAdd.iconbitmap(Cliente.icon_path)
@@ -611,7 +620,7 @@ class Cliente:
                         try:
                             # Validación estricta del formato y existencia real de la fecha
                             fecha = datetime.strptime(contenido, "%d/%m/%Y")
-                            valores.append(fecha.strftime("%Y-%m-%d"))  # Para SQLite
+                            valores.append(fecha.strftime("%Y-%m-%d")) 
 
                         except ValueError:
                             messagebox.showerror(
@@ -714,7 +723,6 @@ class Cliente:
         Cliente.ventanas_secundarias.append(appModify)
 
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appModify.iconbitmap(Cliente.icon_path)
@@ -1052,7 +1060,6 @@ class Cliente:
                 cerrar_ventana()
                 messagebox.showinfo("Éxito", f"Informe generado como:\n{ruta}", parent=app)
 
-                import platform
                 if platform.system() == "Windows":
                     os.startfile(ruta)
                 elif platform.system() == "Darwin":
@@ -1104,7 +1111,6 @@ class Cliente:
         # Icono
         icon_path = "resources/logos/icon_logo.ico"
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             try:
@@ -1178,16 +1184,6 @@ class Cliente:
         
     @staticmethod
     def generar_informe_pdf_fijo(paginas, ruta_salida="informe_Clientes.pdf"):
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import landscape, A4
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.lib.utils import ImageReader
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-        from textwrap import wrap
-        from datetime import datetime
-        from babel.dates import format_datetime
 
         columnas = [
             "DNI/CIF", "Nombre", "Apellido1", "Apellido2",
@@ -1292,16 +1288,6 @@ class Cliente:
 
     @staticmethod
     def generar_informe_pdf(paginas, columnas, ruta_salida="informe_clientes.pdf"):
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import landscape, A4
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.lib.utils import ImageReader
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-        from textwrap import wrap
-        from datetime import datetime
-        from babel.dates import format_datetime
 
         font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
@@ -1391,8 +1377,6 @@ class Cliente:
     
     @staticmethod
     def get_all_client_data():
-        import sqlite3  # o tu conexión real
-
         conn = sqlite3.connect("bd/BDSellCars1.db")  # cambia según uses
         cursor = conn.cursor()
 
@@ -1426,7 +1410,6 @@ class Cliente:
         Cliente.ventanas_secundarias.append(app_sp)
 
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             app_sp.iconbitmap(Cliente.icon_path)
@@ -1576,7 +1559,6 @@ class Cliente:
                 entradas[texto] = campo
 
         def buscar():
-            import sqlite3
 
             datos = {k: v.get().strip() for k, v in entradas.items()}
             print("Datos recogidos:", datos)
@@ -1740,7 +1722,6 @@ class Cliente:
         Cliente.ventanas_secundarias.append(appAddF)
 
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAddF.iconbitmap(Cliente.icon_path)
@@ -1949,7 +1930,6 @@ class Cliente:
 
     @staticmethod
     def refresh_treeview_headings(tree, frame_right, clear_frame_right, app):
-        from functools import partial
 
         for col in Cliente.visible_columns:
             sort_state = Cliente.sort_states.get(col)
@@ -1974,5 +1954,5 @@ class Cliente:
     @staticmethod
     def sort_column_click(col, tree, frame_right, clear_frame_right, app):
         Cliente.update_sort_state(col)
-        Cliente.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)  # ← aquí
+        Cliente.refresh_treeview_headings(tree, frame_right, clear_frame_right, app) 
         Cliente.load_data(frame_right, clear_frame_right, app)

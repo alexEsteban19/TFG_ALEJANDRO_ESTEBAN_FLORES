@@ -5,16 +5,23 @@ from PIL import Image
 import screeninfo
 import os
 import sys
-from datetime import datetime
-from reportlab.lib.pagesizes import landscape, A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from textwrap import wrap
+from functools import partial
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.pagesizes import landscape, A4
 from datetime import datetime
+from babel.dates import format_datetime
+import ctypes
+
 
 class Proveedor:
+    
+    # Definimos variables base
     current_page = 1
     rows_per_page = 20
     visible_columns = None
@@ -28,10 +35,11 @@ class Proveedor:
     ventanas_secundarias = []
 
     sort_column = None
-    sort_order = "asc"  # o "DESC"
+    sort_order = "asc"
     sort_states = {}  # Diccionario: {"columna": "asc" | "desc" | None}
 
 
+    # todos los datos de la BD
     column_name_map = {
         "dni_cif": "DNI / CIF",
         "nombre": "Nombre",
@@ -52,6 +60,7 @@ class Proveedor:
         "bloqueado": "Bloqueado"
     }
 
+    # datos que muestra la tabla
     column_options = {
         "dni_cif": "DNI / CIF",
         "nombre": "Nombre",
@@ -65,6 +74,7 @@ class Proveedor:
         "idioma": "Idioma",
     }
 
+    # metodo para crear la tabla
     @staticmethod
     def create_table(query, columns, data, frame_right, app, clear_frame_right, total_pages, Filtro):
         for widget in frame_right.winfo_children():
@@ -78,11 +88,11 @@ class Proveedor:
             Proveedor.visible_columns = ["dni_cif", "nombre", "apellido1", "apellido2", "direccion", "ciudad", 
                                                  "telefono1","fax1" ,"email1" ,"idioma"]
 
-        # 🔒 Crear contenedor invisible
+        #Crear contenedor invisible
         main_container = ctk.CTkFrame(frame_right, fg_color="#3d3d3d")
         main_container.place_forget()
 
-        # Contenido principal
+        #Contenido principal
         main_frame = ctk.CTkFrame(main_container, fg_color="#3d3d3d")
         main_frame.pack(fill="both", expand=True, padx=int(rel_size // 1.5), pady=int(rel_size // 1.5))
 
@@ -91,7 +101,7 @@ class Proveedor:
         btn_hover = "#16466e"
         icon_size = (int(rel_size * 3), int(rel_size * 2))
         
-        #Barra de Búsqueda
+        #Barra dr Búsqueda
         search_frame = ctk.CTkFrame(main_frame, fg_color="transparent", corner_radius=int(rel_size // 2))
         search_frame.pack(fill="x", padx=rel_size // 6, pady=rel_size // 6)
         
@@ -140,11 +150,11 @@ class Proveedor:
                                             command=lambda: Proveedor.clear_search(frame_right, clear_frame_right, app))
         clear_search_button.pack(side="left", padx=rel_size // 1.5)
 
-        # 🔹 Frame desplegable principal
+        #Frame desplegable principal
         column_filter_frame = ctk.CTkFrame(frame_right, fg_color="black", corner_radius=15, width=300)
         filter_open = [False]  # Para mutabilidad
 
-        # 🔹 Frame para el botón fijo en la parte de abajo
+        #Frame para el botón fijo en la parte de abajo
         button_frame = ctk.CTkFrame(column_filter_frame, fg_color="black")
         button_frame.pack(anchor="w",side="bottom",fill="both")
 
@@ -160,11 +170,11 @@ class Proveedor:
         )
         apply_button.pack(pady=rel_size // 3, padx=rel_size // 6)
 
-        # 🔹 Scrollable frame para los checkboxes
+        #Scrollable frame para los checkboxes
         checkbox_scroll_frame = ctk.CTkScrollableFrame(column_filter_frame, fg_color="black")
         checkbox_scroll_frame.pack(side="top", fill="both", expand=True)
 
-        # 🔹 Variables y checkboxes
+        #Variables y checkboxes
         selected_columns = {
             col: ctk.BooleanVar(value=(col in Proveedor.visible_columns)) for col in columns
         }
@@ -183,7 +193,7 @@ class Proveedor:
             checkbox.pack(anchor="w", padx=int(rel_size // 2.5), pady=int(rel_size // 2.5))  # Más separación
 
       
-        # 🔹 Funciones toggle y apply
+        # Funciones toggle y apply
         def toggle_filter_dropdown():
             padding_x = 0.015  # Márgenes horizontales (relativos)
             padding_y = 0.02   # Márgenes verticales (relativos)
@@ -296,16 +306,16 @@ class Proveedor:
         style.configure("Treeview",
                         font=("Sans Sulex", int(rel_size * 0.85)),
                         rowheight=altura_filas,
-                        background="black",         # ← fondo de las filas
-                        foreground="#ededed",         # ← texto blanco
-                        fieldbackground="black",    # ← fondo general
+                        background="black",         # fondo de las filas
+                        foreground="#ededed",         # texto blanco
+                        fieldbackground="black",    # fondo general
                         bordercolor="black"
                         )
 
         style.configure("Treeview.Heading",
                         font=("Sans Sulex", int(rel_size * 0.85)),
-                        foreground="#ededed",         # ← texto encabezado
-                        background="black",       # ← fondo encabezado
+                        foreground="#ededed",         # texto encabezado
+                        background="black",       # fondo encabezado
                         bordercolor="black",
                         padding=(rel_size // 2, rel_size // 2))
 
@@ -324,8 +334,6 @@ class Proveedor:
         tree.tag_configure('evenrow', background='#1a1a1a')  # Gris oscuro
         tree.tag_configure('oddrow', background='black')     # Negro
 
-        from functools import partial
-
         for col in Proveedor.visible_columns:
             tree.heading(
                 col,
@@ -341,7 +349,7 @@ class Proveedor:
 
         # Inserta filas con colores alternos
 
-##Picha Cambio Fecha-------------------------------------------------------------------------------------------------------------------
+#Cambio Fecha-------------------------------------------------------------------------------------------------------------------
         def format_date(value):
             try:
                 # Detecta si el valor es una fecha en formato yyyy-mm-dd o yyyy/mm/dd
@@ -357,7 +365,7 @@ class Proveedor:
         for i, row in enumerate(data):
             filtered_row = [row[columns.index(col)] for col in Proveedor.visible_columns]
             
-            # ➕ Formatea las fechas antes de mostrarlas
+            #Formatea las fechas antes de mostrarlas
             for j, col in enumerate(Proveedor.visible_columns):
                 if "fecha" in col.lower() and isinstance(filtered_row[j], str):
                     filtered_row[j] = format_date(filtered_row[j])
@@ -371,7 +379,7 @@ class Proveedor:
 
         tree.bind("<<TreeviewSelect>>", lambda event: Proveedor.on_item_selected(tree))
 
-        # ✅ MOSTRAR el frame principal una vez terminado
+        #MOSTRAR el frame principal una vez terminado
         main_container.place(relwidth=1.0, relheight=1.0)
 
         Proveedor.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)
@@ -482,7 +490,7 @@ class Proveedor:
         for db_col, disp_name in Proveedor.column_name_map.items():
             if disp_name == display_name:
                 return db_col
-        return display_name  # fallback en caso de no encontrarlo
+        return display_name
 
     @staticmethod
     def add_proveedor(frame_right, clear_frame_right, app):
@@ -500,7 +508,6 @@ class Proveedor:
         Proveedor.ventanas_secundarias.append(appAdd)
 
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAdd.iconbitmap(Proveedor.icon_path)
@@ -558,7 +565,7 @@ class Proveedor:
                     button_color="#990404",
                     button_hover_color="#540303"
                 )
-                entry.set("No")  # <<< Aquí fijamos que por defecto esté en "No"
+                entry.set("No")  # Aquí fijamos que por defecto esté en "No"
             else:
                 entry = ctk.CTkEntry(
                     fila,
@@ -592,7 +599,7 @@ class Proveedor:
                     else:
                         try:
                             fecha = datetime.strptime(contenido, "%d/%m/%Y")
-                            valores.append(fecha.strftime("%Y-%m-%d"))  # Para SQLite
+                            valores.append(fecha.strftime("%Y-%m-%d"))
                         except ValueError:
                             messagebox.showerror(
                                 "Fecha inválida",
@@ -679,7 +686,7 @@ class Proveedor:
 
         icon_path = "resources/logos/icon_logo.ico"
         conn = sqlite3.connect("bd/BDSellCars1.db")
-        conn.row_factory = sqlite3.Row  # 🔥 Para acceder por nombre
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -701,7 +708,6 @@ class Proveedor:
         Proveedor.ventanas_secundarias.append(appModify)
 
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appModify.iconbitmap(Proveedor.icon_path)
@@ -1018,7 +1024,6 @@ class Proveedor:
         # Icono
         icon_path = "resources/logos/icon_logo.ico"
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             try:
@@ -1092,16 +1097,6 @@ class Proveedor:
         
     @staticmethod
     def generar_informe_pdf_fijo(paginas, ruta_salida="informe_Proveedores.pdf"):
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import landscape, A4
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.lib.utils import ImageReader
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-        from textwrap import wrap
-        from datetime import datetime
-        from babel.dates import format_datetime
 
         columnas = [
             "DNI/CIF", "Nombre", "Apellido1", "Apellido2",
@@ -1206,16 +1201,6 @@ class Proveedor:
 
     @staticmethod
     def generar_informe_pdf(paginas, columnas, ruta_salida="informe_Proveedores.pdf"):
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import landscape, A4
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.lib.utils import ImageReader
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-        from textwrap import wrap
-        from datetime import datetime
-        from babel.dates import format_datetime
 
         font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
@@ -1305,7 +1290,6 @@ class Proveedor:
     
     @staticmethod
     def get_all_proveedor_data():
-        import sqlite3  # o tu conexión real
 
         conn = sqlite3.connect("bd/BDSellCars1.db")  # cambia según uses
         cursor = conn.cursor()
@@ -1338,7 +1322,6 @@ class Proveedor:
         Proveedor.ventanas_secundarias.append(app_sp)
 
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             app_sp.iconbitmap(Proveedor.icon_path)
@@ -1422,7 +1405,6 @@ class Proveedor:
         entradas["Bloqueado"] = bloqueado_menu
 
         def buscar():
-            import sqlite3
 
             datos = {k: (v.get().strip() if isinstance(v, ctk.CTkEntry) else v.get()) for k, v in entradas.items()}
             print("Datos recogidos:", datos)
@@ -1572,7 +1554,6 @@ class Proveedor:
         Proveedor.ventanas_secundarias.append(appAddF)
 
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAddF.iconbitmap(Proveedor.icon_path)
@@ -1779,7 +1760,6 @@ class Proveedor:
 
     @staticmethod
     def refresh_treeview_headings(tree, frame_right, clear_frame_right, app):
-        from functools import partial
 
         for col in Proveedor.visible_columns:
             sort_state = Proveedor.sort_states.get(col)

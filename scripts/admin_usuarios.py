@@ -741,7 +741,7 @@ class AdminUsuarios:
             AdminUsuarios.selected_user = tree.item(selected_item, "values")[0]
     
 
-    @staticmethod # borrar usuario de la BD
+    @staticmethod # borrar usuario
     def delete_User(selected_dni, frame_right, clear_frame_right, app):
         if not selected_dni:
             messagebox.showwarning("Aviso", "Selecciona un usuario para borrar.")

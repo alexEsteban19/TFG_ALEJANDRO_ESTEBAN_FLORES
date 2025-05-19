@@ -12,6 +12,7 @@ class Login:
         self.app = ctk.CTk()
         self.app.title("IDENTIFICACIÓN - HGC")
         self.icon_path = "resources/logos/icon_logo.ico"
+        ctk.set_appearance_mode("dark")
 
         # Asociamos el icono personalizado al proceso para que lo detecte bien
         if sys.platform == "win32":

@@ -14,9 +14,24 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from textwrap import wrap
-from datetime import datetime
+from functools import partial
+import platform
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from babel.dates import format_datetime
+import ctypes
+import platform
+
+
+
 
 class Facturacion:
+    
+    # Definimos variables base
+    highlight_color = "#c91706"  # Color cuando se selecciona (borde)
+    default_border_color = "#565b5e"  # Color del borde por defecto
+    default_fg_color = "#181818"  # Color de fondo por defecto
+    
     current_page = 1
     rows_per_page = 20
     visible_columns = None
@@ -30,12 +45,13 @@ class Facturacion:
     ventanas_secundarias = [] 
     
     sort_column = None
-    sort_order = "asc"  # o "DESC"
+    sort_order = "asc" 
     sort_states = {}  # Diccionario: {"columna": "asc" | "desc" | None}
 
     tablas = ["FacturasClientes", "FacturasProveedores", "FacturasAcreedores"]
     tabla_seleccionada = "FacturasClientes"
 
+    # todos los datos de la BD
     column_name_map = {
         "IDDocumento": "ID Documento",
         "tipoFactura": "TipoFactura",
@@ -51,6 +67,7 @@ class Facturacion:
         "Rec": "R.E.C."
     }
 
+    # datos que muestra la tabla
     column_options = {
         "IDDocumento": "ID Documento",
         "tipoFactura": "TipoFactura",
@@ -66,7 +83,7 @@ class Facturacion:
         "Rec": "R.E.C."
     }
 
-
+    # metodo para crear la tabla
     @staticmethod
     def create_table(query, columns, data, frame_right, app, clear_frame_right, total_pages, Filtro):
         for widget in frame_right.winfo_children():
@@ -75,15 +92,16 @@ class Facturacion:
         Facturacion.selected_Factura = None
         total_width = app.winfo_width()
         rel_size = total_width / 100
-
+        
+        # si no hubiera columnas, definimos unas "default"
         if Facturacion.visible_columns is None or not Facturacion.visible_columns:
             Facturacion.visible_columns = ["IDDocumento","tipoFactura","dni_cif","FechaFactura","cobro", "TipoTransaccionRecibida","clase","centro","serie","referencia","cesado","Rec"]
 
-        # 🔒 Crear contenedor invisible
+        #Crear contenedor invisible
         main_container = ctk.CTkFrame(frame_right, fg_color="#3d3d3d")
         main_container.place_forget()
 
-        # Contenido principal
+        #Contenido principal
         main_frame = ctk.CTkFrame(main_container, fg_color="#3d3d3d")
         main_frame.pack(fill="both", expand=True, padx=int(rel_size // 1.5), pady=int(rel_size // 1.5))
 
@@ -105,6 +123,7 @@ class Facturacion:
         spacer = ctk.CTkLabel(search_frame, text="")  # Vacío, sirve solo para expandir
         spacer.pack(side="left", expand=True)
 
+        # Creación del botón de informes
         informe_image = Image.open("resources/icons/white/votacion.png").resize(icon_size)
         informe_image = ctk.CTkImage(light_image=informe_image)
         informe_btn = ctk.CTkButton(search_frame, text="Generar Informe", image=informe_image, fg_color=btn_color,
@@ -113,6 +132,7 @@ class Facturacion:
                                 border_width=2, border_color="white", command=lambda: Facturacion.generate_inform(app))
         informe_btn.pack(side="left", padx=rel_size // 2, pady=int(rel_size // 1.8))
 
+        #Creación del botón de busqueda
         search_plus_image = Image.open("resources/icons/white/search.png").resize(icon_size)
         search_plus_image = ctk.CTkImage(light_image=search_plus_image)
         search_plus_button = ctk.CTkButton(search_frame, text="", image=search_plus_image, fg_color=btn_color,
@@ -122,21 +142,22 @@ class Facturacion:
                                     )
         search_plus_button.pack(side="left", padx=rel_size // 1.5)
 
+        #Función dedicada al cambio de tablas, dependiendo del tipo de factura requerida
         def on_tabla_change(value):
             Facturacion.tabla_seleccionada = value
             Facturacion.clear_search(frame_right, clear_frame_right, app)
 
-        # 🔳 Marco que actúa como borde para el OptionMenu de tablas (más compacto)
+        #Marco que actúa como borde para el OptionMenu de tablas (más compacto)
         option_menu_border = ctk.CTkFrame(
             search_frame,
             fg_color="white",
             border_color="white",
             border_width=0,
-            corner_radius=int(rel_size // 2.5)  # más redondeado pero compacto
+            corner_radius=int(rel_size // 2.5)
         )
         option_menu_border.pack(side="right", padx=int(rel_size // 2), pady=int(rel_size // 2.5))
 
-        # 🔘 OptionMenu más reducido y proporcionado
+        #OptionMenu más reducido y proporcionado
         Facturacion.option_menu_tablas = ctk.CTkOptionMenu(
             option_menu_border,
             values=Facturacion.tablas,
@@ -149,12 +170,12 @@ class Facturacion:
             dropdown_text_color="white",
             dropdown_font=("Sans Sulex", int(rel_size * 0.85)),
             font=("Sans Sulex", int(rel_size * 0.85)),
-            width=int(rel_size * 12)  # 🔽 reducido de 15 a 12
+            width=int(rel_size * 12)
         )
         Facturacion.option_menu_tablas.set(Facturacion.tabla_seleccionada)
         Facturacion.option_menu_tablas.pack(padx=int(rel_size // 7), pady=int(rel_size // 7))
 
-#refrescar
+        #Creación del botón de refrescar
         refresh_image = Image.open("resources/icons/white/refresh.png").resize(icon_size)
         refresh_image = ctk.CTkImage(light_image=refresh_image)
         clear_search_button = ctk.CTkButton(search_frame, text="", image=refresh_image, fg_color=btn_color,
@@ -164,14 +185,14 @@ class Facturacion:
                                             command=lambda: Facturacion.clear_search(frame_right, clear_frame_right, app))
         clear_search_button.pack(side="left", padx=rel_size // 1.5)
 
-#PICHA
-        # Frame desplegable para la selección de columnas
+        # Frame desplegable para la selección de columnas (filtro)
         column_filter_frame = ctk.CTkFrame(frame_right, fg_color="black", corner_radius=15, width=300)
         filter_open = [False]
 
         button_frame = ctk.CTkFrame(column_filter_frame, fg_color="black")
         button_frame.pack(anchor="w", side="bottom", fill="both")
 
+        # Botón para aplicar las opciones del filtro
         apply_button = ctk.CTkButton(
             button_frame,
             font=("Sans Sulex", int(rel_size * 1.1)),
@@ -184,6 +205,7 @@ class Facturacion:
         )
         apply_button.pack(pady=rel_size // 5, padx=rel_size // 7)
 
+        # Frame para las opcciones del filtro 
         checkbox_scroll_frame = ctk.CTkScrollableFrame(column_filter_frame, fg_color="black")
         checkbox_scroll_frame.pack(side="top", fill="both", expand=True)
 
@@ -191,9 +213,12 @@ class Facturacion:
             col: ctk.BooleanVar(value=(col in Facturacion.visible_columns)) for col in columns
         }
 
+        # Bucle para la creacion de cada una de las opcciones del filtro (que son las columnas de la tabla) 
         for col in columns:
+            # Para que no se pueda desactivar y dar error en la función de selección 
             if col == "IDDocumento":
                 continue
+            # Direcctrices para le creación de la checkbox
             checkbox = ctk.CTkCheckBox(
                 checkbox_scroll_frame,
                 font=("Sans Sulex", int(rel_size * 1.1)),
@@ -204,6 +229,7 @@ class Facturacion:
             )
             checkbox.pack(anchor="w", padx=int(rel_size // 3), pady=int(rel_size // 3))
 
+        #Función para mostrar o dejar de mostrar el filtro a la derecha
         def toggle_filter_dropdown():
             padding_x = 0.015
             padding_y = 0.02
@@ -222,6 +248,7 @@ class Facturacion:
                 main_frame.place_configure(relwidth=0.8)
                 filter_open[0] = True
 
+        #Función para la aplicación del filtro
         def apply_filter():
             visible = [col for col, var in selected_columns.items() if var.get()]
             Facturacion.visible_columns = visible if visible else columns[:]
@@ -238,16 +265,17 @@ class Facturacion:
                                     command=toggle_filter_dropdown)
         filter_button.pack(side="left", padx=rel_size // 1.5)
         
-        #Tabla
+        # Tabla
         tree_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         tree_frame.pack(fill="both", expand=True, padx=rel_size, pady=rel_size // 14)
 
         heading_font_size = int(rel_size)
 
-        #Botones Navegación
+        # Botones Navegación
         nav_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         nav_frame.pack(side="top", fill="x", padx=int(rel_size // 3), pady=int(rel_size // 3))
 
+        # Botón para ir a la página anterior
         prev_image = Image.open("resources/icons/white/angle-small-left.png").resize(icon_size)
         prev_image = ctk.CTkImage(light_image=prev_image)
         prev_btn = ctk.CTkButton(nav_frame, text="", image=prev_image, fg_color=btn_color,
@@ -257,12 +285,14 @@ class Facturacion:
                                 command=lambda: Facturacion.change_page(-1, frame_right, clear_frame_right, app))
         prev_btn.pack(side="left", padx=rel_size, pady=rel_size // 1.5)
 
+        #Texto de "Página"
         page_label = ctk.CTkLabel(nav_frame,
                                 text=f"Página {Facturacion.current_page} de {total_pages}",
                                 font=("Sans Sulex", heading_font_size),
                                 text_color="white")
         page_label.pack(side="left")
 
+        # Botón para ir a la página siguiente
         next_image = Image.open("resources/icons/white/angle-small-right.png").resize(icon_size)
         next_image = ctk.CTkImage(light_image=next_image)
         next_btn = ctk.CTkButton(nav_frame, text="", image=next_image, fg_color=btn_color,
@@ -272,11 +302,11 @@ class Facturacion:
                                 command=lambda: Facturacion.change_page(1, frame_right, clear_frame_right, app))
         next_btn.pack(side="left", padx=rel_size, pady=rel_size // 1.5)
         
-        #Botones Agregar/Modificar/Borrar
+        # Botones Agregar/Modificar/Borrar
         action_frame = ctk.CTkFrame(nav_frame, fg_color="#3d3d3d")
         action_frame.pack(side="right", padx=rel_size, pady=rel_size // 1.5)
 
-        
+        # Botón para la vista de una factura en particular
         vistaFactura_image = Image.open("resources/icons/white/facturas.png").resize(icon_size)
         vistaFactura_image = ctk.CTkImage(light_image=vistaFactura_image)
         vistaFactura_btn = ctk.CTkButton(action_frame, text="Ver Factura", image=vistaFactura_image, fg_color=btn_color,
@@ -285,6 +315,7 @@ class Facturacion:
                                 border_width=1, border_color="white", command=lambda: Facturacion.ver_factura())
         vistaFactura_btn.pack(side="left", padx=rel_size // 2)
 
+        # Botón para la edición de un registro
         edit_image = Image.open("resources/icons/white/boli.png").resize(icon_size)
         edit_image = ctk.CTkImage(light_image=edit_image)
         edit_btn = ctk.CTkButton(action_frame, text="Editar Factura", image=edit_image, fg_color=btn_color,
@@ -293,6 +324,7 @@ class Facturacion:
                                 border_width=1, border_color="white", command=lambda: Facturacion.edit_factura(Facturacion.selected_Factura, frame_right, clear_frame_right, app))
         edit_btn.pack(side="left", padx=rel_size // 2)
 
+        # Botón para la eliminación de un registro
         delete_image = Image.open("resources/icons/white/trash.png").resize(icon_size)
         delete_image = ctk.CTkImage(light_image=delete_image)
         delete_btn = ctk.CTkButton(action_frame, text="Borrar Factura", image=delete_image, fg_color=btn_color,
@@ -301,6 +333,7 @@ class Facturacion:
                                 border_width=1, border_color="white", command=lambda: Facturacion.delete_factura(Facturacion.selected_Factura, frame_right, clear_frame_right, app))
         delete_btn.pack(side="left", padx=rel_size // 2)
 
+#Pregunta
         if Facturacion.current_page == 1:
             prev_btn.configure(state="disabled")
         if Facturacion.current_page == total_pages:
@@ -316,16 +349,16 @@ class Facturacion:
         style.configure("Treeview",
                         font=("Sans Sulex", int(rel_size * 0.85)),
                         rowheight=altura_filas,
-                        background="black",         # ← fondo de las filas
-                        foreground="#ededed",         # ← texto blanco
-                        fieldbackground="black",    # ← fondo general
+                        background="black",         # fondo de las filas
+                        foreground="#ededed",         # texto blanco
+                        fieldbackground="black",    # fondo general
                         bordercolor="black"
                         )
 
         style.configure("Treeview.Heading",
                         font=("Sans Sulex", int(rel_size * 0.85)),
-                        foreground="#ededed",         # ← texto encabezado
-                        background="black",       # ← fondo encabezado
+                        foreground="#ededed",         #texto encabezado
+                        background="black",       # fondo encabezado
                         bordercolor="black",
                         padding=(rel_size // 2, rel_size // 2))
 
@@ -335,6 +368,7 @@ class Facturacion:
                 foreground=[("selected", "white")])    # texto blanco en selección
 
 
+        # Creación del scrollbar lateral para la tabla
         tree = ttk.Treeview(tree_frame, columns=Facturacion.visible_columns, show="headings", height=Facturacion.rows_per_page)
         Facturacion.tree = tree
         x_scrollbar = ttk.Scrollbar(tree_frame, orient="horizontal", command=tree.xview)
@@ -344,24 +378,23 @@ class Facturacion:
         tree.tag_configure('evenrow', background='#1a1a1a')  # Gris oscuro
         tree.tag_configure('oddrow', background='black')     # Negro
 
-        from functools import partial
-
+#Pregunta
+        # Bucle para la creacion de los headings de la tabla
         for col in Facturacion.visible_columns:
             tree.heading(
                 col,
-                text=Facturacion.column_name_map.get(col, col),  # inicial, sin flecha
+                text=Facturacion.column_name_map.get(col, col),
                 anchor="center",
                 command=partial(Facturacion.sort_column_click, col, tree, frame_right, clear_frame_right, app)
             )
             tree.column(col, width=int(rel_size * 9), anchor="center", stretch=False)
 
+#Pregunta
         for col in Facturacion.visible_columns:
             tree.heading(col, text=Facturacion.column_name_map.get(col, col), anchor="center")
             tree.column(col, width=int(rel_size * 9), anchor="center", stretch=False)
 
-        # Inserta filas con colores alternos
-
-##Picha Cambio Fecha-------------------------------------------------------------------------------------------------------------------
+#Cambio Fecha-------------------------------------------------------------------------------------------------------------------
         def format_date(value):
             try:
                 # Detecta si el valor es una fecha en formato yyyy-mm-dd o yyyy/mm/dd
@@ -377,7 +410,7 @@ class Facturacion:
         for i, row in enumerate(data):
             filtered_row = [row[columns.index(col)] for col in Facturacion.visible_columns]
             
-            # ➕ Formatea las fechas antes de mostrarlas
+            # Formatea las fechas antes de mostrarlas
             for j, col in enumerate(Facturacion.visible_columns):
                 if "fecha" in col.lower() and isinstance(filtered_row[j], str):
                     filtered_row[j] = format_date(filtered_row[j])
@@ -389,26 +422,24 @@ class Facturacion:
         tree.pack(pady=rel_size // 1.5, fill="both", expand=True)
         tree.bind("<<TreeviewSelect>>", lambda event: Facturacion.on_item_selected(tree))
 
-        # ✅ MOSTRAR el frame principal una vez terminado
+        # Mostrar el frame principal una vez terminado
         main_container.place(relwidth=1.0, relheight=1.0)
 
+        # Llamada al metodo de refrescar los headings (Necesario para que se vea la flecha de ordenación de la columna)
         Facturacion.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)
 
-    @staticmethod
-    def search_data(query, search_column, frame_right, clear_frame_right, app):
-        Facturacion.query = query
-        Facturacion.search_column = search_column
-        Facturacion.Filtro = True
-        Facturacion.current_page = 1
-        Facturacion.load_data(frame_right, clear_frame_right, app)
 
+    # Metodo  que nos ayuda a cargar todos los datos que vamos a escribir en la base de datos
     @staticmethod
     def load_data(frame_right, clear_frame_right, app):
         db_path = "bd/BDSellCars1.db"
         try:
+            #Creamos la conexión con la base de datos
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
 
+#Preguntar
+            #Especificamos el offset
             offset = (Facturacion.current_page - 1) * Facturacion.rows_per_page
 
             tabla = Facturacion.tabla_seleccionada
@@ -419,22 +450,30 @@ class Facturacion:
             if Facturacion.sort_column:
                 direction = Facturacion.sort_order if Facturacion.sort_order in ("asc", "desc") else "asc"
                 col = Facturacion.sort_column
+                # Para que a la hora de ordenar, tome en cuenta las letras con tilde, como letras normales
                 col_normalized = (
           f"REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(\"{col}\"), 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), 'Á', 'a'), 'É', 'e'), 'Í','i'), 'Ó','o'), 'Ú','u')"
                 )
+                #Sentencia de ordenación
                 order_clause = f"ORDER BY {col_normalized} {direction}"
             else:
                 order_clause = ""
 
+            # Sentencias, que dependiendo de si hay filtro o no, para el conteo, para la creación de páginas
+            # y los datos que se van a mostrar
             if Facturacion.Filtro:
-                if isinstance(Facturacion.query_params, list):  # viene de search_plus
+                # Sentencia para el conteo de datos
+                if isinstance(Facturacion.query_params, list): 
                     count_sql = f"SELECT COUNT(*) FROM {tabla} WHERE {Facturacion.query}"
                     cursor.execute(count_sql, Facturacion.query_params)
                     total_rows = cursor.fetchone()[0]
 
+                    # Sentencia para la recoleccion de datos
                     select_sql = f"SELECT * FROM {tabla} WHERE {Facturacion.query} {order_clause} LIMIT ? OFFSET ?"
                     cursor.execute(select_sql, Facturacion.query_params + [Facturacion.rows_per_page, offset])
-                else:  # viene de search_data
+
+                #(((((((Se puede borrar)))))))
+                else: 
                     cursor.execute(f"SELECT COUNT(*) FROM {tabla} WHERE {Facturacion.search_column} LIKE ?", (f"{Facturacion.query}%",))
                     total_rows = cursor.fetchone()[0]
 
@@ -442,17 +481,22 @@ class Facturacion:
                         f"SELECT * FROM {tabla} WHERE {Facturacion.search_column} LIKE ? {order_clause} LIMIT ? OFFSET ?",
                         (f"{Facturacion.query}%", Facturacion.rows_per_page, offset)
                     )
+            # Coger todos los datos cuando no hay filtros
             else:
+                # Conteo
                 cursor.execute(f"SELECT COUNT(*) FROM {tabla}")
                 total_rows = cursor.fetchone()[0]
 
+                #Recolección de datos
                 cursor.execute(f"SELECT * FROM {tabla} {order_clause} LIMIT ? OFFSET ?", (Facturacion.rows_per_page, offset))
 
             data = cursor.fetchall()
             conn.close()
 
+            # Calculo del máximo de paginas que va a tener la recolecta de datos (cada página consta de 20 registros)
             total_pages = max((total_rows // Facturacion.rows_per_page) + (1 if total_rows % Facturacion.rows_per_page > 0 else 0), 1)
-
+            
+            #Llamamos al metodo necesario para crear la tabla
             Facturacion.create_table(
                 Facturacion.query,
                 list(Facturacion.column_name_map.keys()),
@@ -468,6 +512,7 @@ class Facturacion:
             print("Error al cargar datos:", e)
 
 
+    #Metodo para refrescar la interfaz ,deshacer la búsqueda y volver a la página 1`
     @staticmethod
     def clear_search(frame_right, clear_frame_right, app):
         Facturacion.Filtro = False
@@ -475,11 +520,13 @@ class Facturacion:
         Facturacion.current_page = 1
         Facturacion.abrir_Factu(frame_right, clear_frame_right, app)
 
+    #Metodo para el cambio de página
     @staticmethod
     def change_page(direction, frame_right, clear_frame_right, app):
         Facturacion.current_page += direction
         Facturacion.load_data(frame_right, clear_frame_right, app)
 
+    #Funcion para inicializar todo
     @staticmethod
     def abrir_Factu(frame_right, clear_frame_right, app, mantener_filtro=False):
         if not mantener_filtro:
@@ -490,17 +537,17 @@ class Facturacion:
 
         Facturacion.load_data(frame_right, clear_frame_right, app)
 
+    #
     @staticmethod
     def get_db_column_from_display_name(display_name):
+        # Recorre el diccionario de mapeo entre nombres de base de datos y nombres mostrados en la interfaz
         for db_col, disp_name in Facturacion.column_name_map.items():
             if disp_name == display_name:
-                return db_col
-        return display_name  # fallback en caso de no encontrarlo
+                return db_col # Si encuentra coincidencia, devuelve el nombre real de columna en la base de datos
+        
+        return display_name # Si no encuentra el display_name, lo devuelve tal cual (por si ya es un nombre de columna válido)
     
-    highlight_color = "#c91706"  # Color cuando se selecciona (borde)
-    default_border_color = "#565b5e"  # Color del borde por defecto
-    default_fg_color = "#181818"  # Color de fondo por defecto
-    
+    # Focus para entrys
     def on_focus_in_entry(entry):
         entry.configure(border_color=Facturacion.highlight_color)
         entry.configure(fg_color="#181818")
@@ -509,8 +556,10 @@ class Facturacion:
         entry.configure(border_color=Facturacion.default_border_color)
         entry.configure(fg_color=Facturacion.default_fg_color)
 
+    # Metodo para la edición de facturas
     @staticmethod
     def edit_factura(selected_Factura, frame_right, clear_frame_right, app):
+        # Metodo para la detección de otra ventana abierta (no abrir 2 ventanas a la vez)
         if Facturacion.ventana_abierta:
             messagebox.showerror(
                 "Ventana ya abierta",
@@ -519,8 +568,10 @@ class Facturacion:
             )
             return
 
-        Facturacion.ventana_abierta = True  # Marcamos la ventana como abierta
+        # Marcar la ventana como abierta
+        Facturacion.ventana_abierta = True  
 
+        # Recolección de todos los datos de la factura seleccionada
         icon_path = "resources/logos/icon_logo.ico"
         tabla = Facturacion.tabla_seleccionada
         conn = sqlite3.connect("bd/BDSellCars1.db")
@@ -529,20 +580,23 @@ class Facturacion:
         factura = cursor.fetchone()
         conn.close()
 
+        # Comprobación y exposición de un error si no hay ninguna factura seleccionada
         if not selected_Factura:
             messagebox.showerror("Error", f"No se encontró la factura con ID: {selected_Factura}")
             Facturacion.ventana_abierta = False
             return
 
         appModify = ctk.CTk()
+        # Añadir la ventana a la array de ventanas secundarias
         Facturacion.ventanas_secundarias.append(appModify)
 
+        # Asociamos el icono personalizado al proceso para que lo detecte bien
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appModify.iconbitmap(Facturacion.icon_path)
 
+        # Titulo de la ventana
         appModify.title("Editar Factura")
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
@@ -560,24 +614,27 @@ class Facturacion:
         y_position = (main_monitor.height - window_height) // 2
         appModify.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
 
+        # Para que no se pueda cambiar el tamaño de la ventana
         appModify.resizable(False, False)
 
         # Definir la fuente relativa para labels y botones
-        fuente_labels = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.022))  # Fuente más pequeña
-        fuente_boton = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.03))  # Fuente del botón más pequeña
+        fuente_labels = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.022)) 
+        fuente_boton = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.03)) 
         fuente_titulo = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.045))
 
-        padding_relativo = int(window_height * 0.02)  # Ajustamos el padding a un valor relativo al tamaño de la ventana
-        main_frame = ctk.CTkFrame(appModify, fg_color="#373737", corner_radius=0)  # Color de fondo cambiado
+        padding_relativo = int(window_height * 0.02)
+        main_frame = ctk.CTkFrame(appModify, fg_color="#373737", corner_radius=0) 
         main_frame.pack(pady=padding_relativo, padx=padding_relativo, fill="both", expand=True)
 
+        # Título dentro de la ventana
         titulo = ctk.CTkLabel(main_frame, text="Editar Factura", font=fuente_titulo, text_color="white")
         titulo.pack(pady=(int(window_height // 37), 37))
 
-        # Scrollable frame
+        # Scrollable frame para los entry
         scroll_frame = ctk.CTkScrollableFrame(main_frame, fg_color="transparent")
         scroll_frame.pack(fill="both", expand=True, padx=int(window_height // 37), pady=int(window_height // 37))
 
+        # Campos para utilizarlos en conjunto con los entrys
         campos = [
             ("ID Documento", factura[0]),
             ("TipoFactura", factura[1]),
@@ -593,21 +650,27 @@ class Facturacion:
             ("R.E.C.", factura[11]),
         ]
 
-
+        # Array para el guardado de los datos de los entry
         entradas = []
 
+        # Bucle para la creacion del contenido del scrollable frame
         for idx, (texto, valor) in enumerate(campos):
+            # Frame para el titulo y el entry
             fila = ctk.CTkFrame(scroll_frame, fg_color="transparent")
             fila.pack(fill="x", padx=int(window_height // 18.5), pady=int(window_height * 0.015))  # Padding relativo
 
+            # Titulo de la linea (cual va a ser el contenido del entry)
             label = ctk.CTkLabel(fila, text=texto + ":", font=fuente_labels, width=160, anchor="w", text_color="white")
             label.pack(side="left", padx=int(window_height // 18.5))
 
+            # Si el campo equivale a una fecha, se hace esto 
             if "Fecha" in texto:
+                # Creamos un entry con un placeholder que equivale a lo que queremos que el usuario introduzca
                 entry_fecha = ctk.CTkEntry(fila, placeholder_text="dd/mm/yyyy", font=fuente_labels,
                                         fg_color="#181818", text_color="white")
                 if valor:
                     try:
+                        # Una vez introducida la fecha, se convierte a un formato adecuado para SQL 
                         fecha_convertida = datetime.strptime(valor.strip(), "%Y-%m-%d").strftime("%d/%m/%Y")
                         entry_fecha.insert(0, fecha_convertida)
                     except ValueError:
@@ -616,10 +679,11 @@ class Facturacion:
                 entry_fecha.pack(side="left", fill="x", expand=True)
                 entradas.append(entry_fecha)
 
+                # Para el focus del entry (cambio de color al centrarse en el campo)
                 entry_fecha.bind("<FocusIn>", lambda event, e=entry_fecha: Facturacion.on_focus_in_entry(e))
                 entry_fecha.bind("<FocusOut>", lambda event, e=entry_fecha: Facturacion.on_focus_out_entry(e))
 
-            
+            # Si el campo es este, creamos un optionmenu con sus diferentes opciones
             elif texto == "Cesado":
                 opciones = ["", "Sí", "No"]
                 option_menu = ctk.CTkOptionMenu(
@@ -630,7 +694,7 @@ class Facturacion:
                     dropdown_fg_color="#181818",  # Fondo negro en la lista del OptionMenu
                     font=fuente_labels,  # Fuente de texto del OptionMenu
                 )
-                option_menu.set(valor)  # Usamos el método `set()` para seleccionar el valor
+                option_menu.set(valor) 
                 option_menu.pack(side="left", fill="x", expand=True)
                 entradas.append(option_menu)
 
@@ -660,27 +724,25 @@ class Facturacion:
         )
         boton_guardar.pack(pady=int(window_height * 0.03))
 
+        # Función para el guardado de los datos escritos dentro de la ventana que hemos creado arriba
         def guardar_cambios(selected_Factura):
-            valores = []
-            campos_fecha = ["FechaFactura"]
+            valores = [] # Lista para almacenar los valores extraídos del formulario
 
+            # Recorre todas las entradas del formulario (input fields)
             for idx, entrada in enumerate(entradas):
-                label = campos[idx][0].replace(" ", "").replace("º", "").replace("-", "")
-                contenido = entrada.get().strip()
+                contenido = entrada.get().strip() # Obtiene y limpia el texto del campo
 
-                if isinstance(entrada, ctk.CTkOptionMenu):
-                    if entrada.cget("values")[0] in ["Sí", "No"]:
-                        valores.append("1" if entrada.get() == "Sí" else "0")
-                    else:
-                        valores.append(entrada.get())
-
-                elif "Fecha" in campos[idx][0]:
+                # Si el campo tiene una fecha
+                if "Fecha" in campos[idx][0]:
                     if contenido == "":
-                        valores.append("")
+                        valores.append("")  # Si está vacío, se deja vacío
                     else:
                         try:
+                            # Intenta convertir la fecha a formato YYYY-MM-DD
                             fecha = datetime.strptime(contenido, "%d/%m/%Y")
-                            valores.append(fecha.strftime("%Y-%m-%d"))  # Para SQLite
+                            valores.append(fecha.strftime("%Y-%m-%d"))  # Formato correcto de fecha Para SQLite
+
+                        #Excepción para fechas invalidas o con formato erroneo
                         except ValueError:
                             messagebox.showerror(
                                 "Fecha inválida",
@@ -691,32 +753,39 @@ class Facturacion:
                 else:
                     valores.append(contenido)
                     
+            # Validación: el campo IDDocumento (factura) no puede estar vacío
             factura = valores[0].strip()
             if not factura:
                 messagebox.showerror("Error de Validación", "El campo 'ID Documento' no puede estar vacío.", parent=appModify)
-                return  # No continuamos si falta el DNI
+                return
 
             # Si todo es válido, hacemos el update
             try:
                 with sqlite3.connect("bd/BDSellCars1.db") as conn:
                     cursor = conn.cursor()
+                    # En el cursos, ponemos {tabla}, para insertar los datos en la tabla necesaria, y asi podemos
+                    # ahorrar algo de código
                     cursor.execute(f"""UPDATE {tabla} SET
                             IDDocumento = ?, tipoFactura = ?,dni_cif = ?,FechaFactura = ?,cobro = ?,TipoTransaccionRecibida = ?,
                             clase = ?,centro = ?,serie = ?,referencia = ?,cesado = ?,Rec = ?
                         WHERE IDDocumento = ?""", 
-                    (*valores, selected_Factura))
-                    conn.commit()
+                    (*valores, selected_Factura)) # Se pasan los valores y el ID anterior como condición
+                    conn.commit() # Guarda los cambios
 
+                # Refresca la interfaz después de actualizar y cierra la ventana de modificación
                 Facturacion.clear_search(frame_right, clear_frame_right, app)
                 Facturacion.ventana_abierta = False
                 appModify.destroy()
 
-
+            # Manejo de errores comunes
             except sqlite3.IntegrityError:
+                # Si el nuevo IDDocumento ya existe, muestra un error
                 messagebox.showerror("Error", f"Ya existe una factura con el ID: '{factura}'.", parent=appModify)
             except sqlite3.OperationalError as e:
+                # Si ocurre otro error con SQLite, muestra un mensaje de error general
                 messagebox.showerror("Error de Base de Datos", f"Ocurrió un error al guardar los cambios:\n{e}")
                 
+        # Metodo para cerrar la ventana
         def on_closing():
             Facturacion.ventana_abierta = False
             Facturacion.ventanas_secundarias.remove(appModify)
@@ -726,6 +795,7 @@ class Facturacion:
         appModify.bind("<Return>", lambda event: guardar_cambios(selected_Factura))
         appModify.mainloop()
 
+    # Metodo para selección de un usuario de la tabla
     @staticmethod
     def on_item_selected(tree):
         selected_item = tree.selection()
@@ -733,6 +803,7 @@ class Facturacion:
             Facturacion.selected_Factura = tree.item(selected_item, "values")[0]
     
 
+    # Metodo para borrar usuario
     @staticmethod
     def delete_factura(selected_Factura, frame_right, clear_frame_right, app):
         if not selected_Factura:
@@ -741,6 +812,7 @@ class Facturacion:
 
         tabla = Facturacion.tabla_seleccionada
         
+        # Ventana de aviso de elimincaión con pregunta de continuar o cancelar (si, no)
         respuesta = messagebox.askyesno(
             "Confirmar eliminación",
             f"¿Estás seguro de que deseas borrar la factura con ID: {selected_Factura}?"
@@ -748,6 +820,7 @@ class Facturacion:
 
         if respuesta:
             try:
+                #Sentencia del borrado del registro por medio de la localización de este por su ID
                 with sqlite3.connect("bd/BDSellCars1.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute(f"DELETE FROM {tabla} WHERE IDDocumento = ?;", (selected_Factura,))
@@ -761,13 +834,14 @@ class Facturacion:
         else:
             # El usuario eligió "No", no se hace nada
             return
-      
+    
+    # 
     @staticmethod
     def obtener_datos_filtrados(columnas_sql):
         conn = sqlite3.connect("bd/BDSellCars1.db")
         cursor = conn.cursor()
 
-        tabla = Facturacion.tabla_seleccionada  # ← ahora tomamos la tabla seleccionada
+        tabla = Facturacion.tabla_seleccionada  #tomamos la tabla seleccionada
 
         if Facturacion.Filtro:
             if isinstance(Facturacion.query_params, list):
@@ -777,7 +851,6 @@ class Facturacion:
                     Facturacion.query_params
                 )
             else:
-                # Búsqueda simple
                 cursor.execute(
                     f"SELECT {columnas_sql} FROM {tabla} WHERE {Facturacion.search_column} LIKE ?",
                     (f"{Facturacion.query}%",)
@@ -793,6 +866,8 @@ class Facturacion:
      
     @staticmethod
     def generate_inform(app):
+
+        # Evita abrir múltiples ventanas al mismo tiempo
         if Facturacion.ventana_abierta:
             messagebox.showerror(
                 "Ventana ya abierta",
@@ -801,11 +876,13 @@ class Facturacion:
             )
             return
 
-        Facturacion.ventana_abierta = True
+        Facturacion.ventana_abierta = True  # Marca la ventana como abierta
 
+        # Función para la creacion y guardado del pdf en su carpeta correspondiente
         def confirmar_guardado(event=None):
-            nombre_archivo = entrada_nombre.get().strip()
+            nombre_archivo = entrada_nombre.get().strip()  # Obtiene el nombre del informe ingresado
 
+            # Validaciones
             if not nombre_archivo:
                 messagebox.showerror("Error", "Debes introducir un nombre para el informe.", parent=ventana_nombre)
                 return
@@ -818,36 +895,52 @@ class Facturacion:
                 messagebox.showerror("Error", "Solo puedes seleccionar una opción.", parent=ventana_nombre)
                 return
 
+            # Añade extensión .pdf si no se incluyó
             if not nombre_archivo.endswith(".pdf"):
                 nombre_archivo += ".pdf"
 
-            carpeta = Facturacion.tabla_seleccionada  # ← nueva carpeta según tabla
-            ruta = os.path.join("informes", carpeta, nombre_archivo)
-            os.makedirs(os.path.dirname(ruta), exist_ok=True)
+            # Carpeta correspondiente a la tabla seleccionada
+            carpeta = Facturacion.tabla_seleccionada  # Nueva carpeta según tabla
+            ruta = os.path.join("informes", carpeta, nombre_archivo) # Ruta final del informe
+            os.makedirs(os.path.dirname(ruta), exist_ok=True) # Crea la carpeta si no existe
 
             try:
                 if check_predefinido.get():
+                    # Columnas fijas para el informe predefinido
                     columnas_fijas = [
                         "IDDocumento", "tipoFactura", "dni_cif", "FechaFactura", "cobro",
                         "TipoTransaccionRecibida", "clase", "centro", "serie", "referencia", "cesado", "Rec"
                     ]
                     columnas_sql = ", ".join(columnas_fijas)
+
+                    # Obtiene los datos filtrados en función de esas columnas
                     datos = Facturacion.obtener_datos_filtrados(columnas_sql)
+
+                    # Divide los datos en páginas
                     paginas = [datos[i:i + Facturacion.rows_per_page] for i in range(0, len(datos), Facturacion.rows_per_page)]
+
+                    # Genera el informe PDF predefinido
                     Facturacion.generar_informe_pdf_fijo(paginas, ruta)
 
                 elif check_personalizado.get():
+                    # Columnas seleccionadas por el usuario
                     columnas_visibles = Facturacion.visible_columns
                     columnas_sql = ", ".join(columnas_visibles)
+
+                    # Traducción de los nombres de columnas a nombres legibles
                     columnas_texto = [Facturacion.column_name_map.get(col, col) for col in columnas_visibles]
+
+                    # Obtiene los datos y los divide en páginas
                     datos = Facturacion.obtener_datos_filtrados(columnas_sql)
                     paginas = [datos[i:i + Facturacion.rows_per_page] for i in range(0, len(datos), Facturacion.rows_per_page)]
+
+                    # Genera el informe PDF personalizado
                     Facturacion.generar_informe_pdf(paginas, columnas_texto, ruta)
 
                 cerrar_ventana()
                 messagebox.showinfo("Éxito", f"Informe generado como:\n{ruta}", parent=app)
 
-                import platform
+                # Abre el archivo generado con la aplicación predeterminada
                 if platform.system() == "Windows":
                     os.startfile(ruta)
                 elif platform.system() == "Darwin":
@@ -856,14 +949,18 @@ class Facturacion:
                     os.system(f"xdg-open '{ruta}'")
 
             except Exception as e:
+                # Muestra mensaje de error en caso de excepción
                 messagebox.showerror("Error", f"No se pudo generar el informe.\n\n{e}", parent=app)
                 cerrar_ventana()
 
+        # Cierra la ventana y libera el bloqueo
         def cerrar_ventana():
             Facturacion.ventana_abierta = False
             ventana_nombre.destroy()
 
+        # Lógica para seleccionar solo una opción de tipo de informe
         def toggle_check(tipo):
+
             if tipo == "predef":
                 if check_predefinido.get():
                     check_personalizado.deselect()
@@ -871,7 +968,7 @@ class Facturacion:
                 if check_personalizado.get():
                     check_predefinido.deselect()
 
-        # Escalado
+         # Escalado de la ventana según resolución de pantalla
         screen_w = app.winfo_screenwidth()
         screen_h = app.winfo_screenheight()
         ref_w, ref_h = 1920, 1080
@@ -887,6 +984,7 @@ class Facturacion:
         x_pos = int((screen_w - ancho_ventana) / 2)
         y_pos = int((screen_h - alto_ventana) / 2)
 
+        # Crea la ventana secundaria
         ventana_nombre = ctk.CTk()
         Facturacion.ventanas_secundarias.append(ventana_nombre)
 
@@ -899,7 +997,6 @@ class Facturacion:
         # Icono
         icon_path = "resources/logos/icon_logo.ico"
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             try:
@@ -907,18 +1004,23 @@ class Facturacion:
             except Exception as e:
                 print(f"No se pudo cargar el icono: {e}")
 
+        # Asocia el cierre de la ventana al método `cerrar_ventana`
         ventana_nombre.protocol("WM_DELETE_WINDOW", cerrar_ventana)
 
+        # Fuentes personalizadas
         fuente_titulo = ctk.CTkFont(family="Sans Sulex", size=fuente_titulo_size)
         fuente_label = ctk.CTkFont(family="Sans Sulex", size=fuente_label_size)
         fuente_boton = ctk.CTkFont(family="Sans Sulex", size=fuente_boton_size)
 
+        # Frame principal con fondo oscuro
         frame_principal = ctk.CTkFrame(ventana_nombre, fg_color="#373737", corner_radius=0)
         frame_principal.pack(fill="both", expand=True, padx=int(20 * escala_w), pady=int(20 * escala_h))
 
+        # Título de la ventana
         label_titulo = ctk.CTkLabel(frame_principal, text="Informe de Facturas", font=fuente_titulo, text_color="white")
         label_titulo.pack(pady=(int(10 * escala_h), int(10 * escala_h)))
 
+        # Entrada de texto para el nombre del archivo
         entrada_nombre = ctk.CTkEntry(
             frame_principal,
             placeholder_text="Introduce nombre del informe",
@@ -967,24 +1069,16 @@ class Facturacion:
             command=confirmar_guardado
         )
         boton_guardar.pack(pady=(int(15 * escala_h), int(5 * escala_h)))
-
+        # Permite usar la tecla Enter para guardar
         ventana_nombre.bind("<Return>", confirmar_guardado)
+
+        # Inicia el bucle principal de la ventana
         ventana_nombre.mainloop()
 
         
     @staticmethod
     def generar_informe_pdf_fijo(paginas, ruta_salida="informe_facturas.pdf"):
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import landscape, A4
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.lib.utils import ImageReader
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-        from textwrap import wrap
-        from datetime import datetime
-        from babel.dates import format_datetime
-
+        # Columnas base y nombres legibles para el encabezado
         columnas = [
             "IDDocumento", "tipoFactura", "dni_cif", "FechaFactura", "cobro",
             "TipoTransaccionRecibida", "clase", "centro", "serie", "referencia", "cesado", "Rec"
@@ -994,7 +1088,7 @@ class Facturacion:
             "ID", "Tipo", "DNI/CIF", "Fecha", "€",
             "Transaccion", "Clase", "Centro", "Serie", "Referencia", "Cesado", "REC"
         ]
-
+        # Peso proporcional de cada columna (determina el ancho relativo)
         pesos = {
             "ID": 1.2,
             "Tipo": 1.2,
@@ -1010,12 +1104,15 @@ class Facturacion:
             "REC": 0.9
         }
 
-        font_path = "resources/font/CitroenType_Fonts_1.2/static/Full/ttf/CitroenType-Medium.ttf"
+        # Registrar fuente personalizada
+        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
-
+        
+        # Crear objeto PDF en orientación horizontal
         c = canvas.Canvas(ruta_salida, pagesize=landscape(A4))
         width, height = landscape(A4)
 
+        # Configuraciones de márgenes y proporción
         x = 1 * cm
         total_padding = 2 * cm
         peso_total = sum(pesos.values())
@@ -1026,10 +1123,11 @@ class Facturacion:
         altura_encabezado = 1.0 * cm
         total_paginas = len(paginas)
 
+        # Iterar sobre cada página de datos
         for num_pagina, datos_pagina in enumerate(paginas, start=1):
             y = height - 1 * cm
 
-            # 👉 MOVER el logo a la derecha
+            # Mover el logo a la derecha
             try:
                 logo = ImageReader("resources/logos/hgcnegro.png")
                 orig_width, orig_height = logo.getSize()
@@ -1037,18 +1135,18 @@ class Facturacion:
                 logo_height = (orig_height / orig_width) * logo_width
                 c.drawImage(logo, width - logo_width - x, y - logo_height + 0.5 * cm, width=logo_width, height=logo_height, mask='auto')
             except:
-                pass
+                pass   # Si falla el logo, continuar "sin error"
 
             y -= 1.4 * cm
 
-            # TÍTULO centrado a la izquierda del logo
+            # Título centrado a la izquierda del logo
             c.setFont("Sans Sulex", 14)
             c.setFillColor(colors.black)
             c.drawString(x, y, "LISTADO DE FACTURAS")
 
             y -= 1.4 * cm
 
-            # CABECERAS
+            # Cabeceras
             c.setFillColorRGB(0.27, 0.27, 0.27)
             c.rect(x - 0.1 * cm, y - 0.1 * cm, width - total_padding + 0.2 * cm, altura_encabezado, fill=True, stroke=False)
             c.setFillColor(colors.white)
@@ -1062,11 +1160,14 @@ class Facturacion:
             y -= altura_encabezado
             c.setFont("Sans Sulex", font_size)
 
+            # Dibujar cada fila de datos
             for fila in datos_pagina:
+                # Alternar color de fondo (gris claro/blanco)
                 c.setFillColor(colors.whitesmoke if datos_pagina.index(fila) % 2 == 0 else colors.lightgrey)
                 c.rect(x - 0.1 * cm, y - 0.1 * cm, width - total_padding + 0.2 * cm, altura_fila, fill=True, stroke=False)
                 c.setFillColor(colors.black)
 
+                # Dibujar columnas de la fila
                 col_x = x
                 for idx, item in enumerate(fila):
                     texto = str(item) if item is not None else ""
@@ -1078,7 +1179,7 @@ class Facturacion:
 
                 y -= altura_fila
 
-            # PIE DE PÁGINA
+            # Pie de página con fecha y número de página
             fecha_actual = format_datetime(datetime.now(), "EEEE, d 'de' MMMM 'de' y, HH:mm", locale="es")
             c.setFont("Sans Sulex", 9)
             c.setFillColor(colors.black)
@@ -1089,42 +1190,43 @@ class Facturacion:
 
         c.save()
 
+    
+    # Genera un informe PDF en formato horizontal con los datos proporcionados en múltiples páginas.
+    # Cada página incluye un logo, título, encabezado de columnas y filas con datos, además de pie 
+    # de página con la fecha y número de página.
+
     @staticmethod
     def generar_informe_pdf(paginas, columnas, ruta_salida="informe_facturas_personalizado.pdf"):
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import landscape, A4
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.lib.utils import ImageReader
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-        from textwrap import wrap
-        from datetime import datetime
-        from babel.dates import format_datetime
 
-        font_path = "resources/font/CitroenType_Fonts_1.2/static/Full/ttf/CitroenType-Medium.ttf"
+        # Registrar la fuente personalizada desde el archivo .ttf
+        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
 
+        # Crear el canvas del PDF en orientación horizontal
         c = canvas.Canvas(ruta_salida, pagesize=landscape(A4))
         width, height = landscape(A4)
 
+        # Ruta del logo y margen izquierdo
         logo_path = "resources/logos/hgcnegro.png"
-        x = 1 * cm
-        total_padding = 2 * cm
+        x = 1 * cm  # margen izquierdo
+        total_padding = 2 * cm  # márgenes izquierdo y derecho combinados
 
+        # Cálculo del ancho de cada columna
         num_columnas = len(columnas)
         peso_columna = (width - total_padding) / num_columnas
 
+        # Configuración de estilo
         font_size = 9
         altura_fila = 0.75 * cm
         altura_encabezado = 1.0 * cm
-        max_chars_per_line = 30
+        max_chars_per_line = 30 
         total_paginas = len(paginas)
 
+        # Iterar por cada página de datos
         for num_pagina, datos_pagina in enumerate(paginas, start=1):
             y = height - 1 * cm
 
-            # 👉 Mover logo a la derecha
+            # Mover logo a la derecha
             try:
                 logo = ImageReader(logo_path)
                 orig_width, orig_height = logo.getSize()
@@ -1132,7 +1234,7 @@ class Facturacion:
                 logo_height = (orig_height / orig_width) * logo_width
                 c.drawImage(logo, width - logo_width - x, y - logo_height + 0.5 * cm, width=logo_width, height=logo_height, mask='auto')
             except:
-                pass
+                pass  # Si el logo no se encuentra o da error, se omite
 
             y -= 1.4 * cm
 
@@ -1155,9 +1257,10 @@ class Facturacion:
                 c.drawString(col_x, y + altura_encabezado / 2 - font_size / 2.5, nombre_col)
                 col_x += peso_columna
 
-            y -= altura_encabezado
+            y -= altura_encabezado  # bajar para dibujar las filas
             c.setFont("Sans Sulex", font_size)
 
+            # Dibujar filas de datos
             for fila in datos_pagina:
                 c.setFillColor(colors.whitesmoke if datos_pagina.index(fila) % 2 == 0 else colors.lightgrey)
                 c.rect(x - 0.1 * cm, y - 0.1 * cm, width - total_padding + 0.2 * cm, altura_fila, fill=True, stroke=False)
@@ -1174,6 +1277,7 @@ class Facturacion:
 
                 y -= altura_fila
 
+            # Pie de página con fecha actual y número de página
             fecha_actual = format_datetime(datetime.now(), "EEEE, d 'de' MMMM 'de' y, HH:mm", locale="es")
             c.setFont("Sans Sulex", 9)
             c.setFillColor(colors.black)
@@ -1182,7 +1286,7 @@ class Facturacion:
 
             c.showPage()
 
-        c.save()
+        c.save() # Guardar todo el progreso
 
     @staticmethod
     def ver_factura():
@@ -1191,17 +1295,6 @@ class Facturacion:
             return
 
         try:
-            import platform
-            from reportlab.pdfgen import canvas
-            from reportlab.lib.pagesizes import A4
-            from reportlab.lib.units import cm
-            from reportlab.lib.utils import ImageReader
-            from reportlab.lib import colors
-            from reportlab.pdfbase import pdfmetrics
-            from reportlab.pdfbase.ttfonts import TTFont
-            from datetime import datetime
-            import os
-            import sqlite3
 
             # === REGISTRAR FUENTES ===
             try:
@@ -1319,6 +1412,7 @@ class Facturacion:
     @staticmethod
     def search_plus(frame_right, clear_frame_right, app):
         
+        # Verifica si ya hay una ventana de búsqueda abierta
         if Facturacion.ventana_abierta:
             messagebox.showerror(
                 "Ventana ya abierta",
@@ -1326,30 +1420,33 @@ class Facturacion:
                 parent=app
             )
             return
-        tabla = Facturacion.tabla_seleccionada
-
-        Facturacion.ventana_abierta = True  # Marcamos la ventana como abierta
+        
+        tabla = Facturacion.tabla_seleccionada  # Obtiene la tabla seleccionada
+        Facturacion.ventana_abierta = True  # Marcar la ventana como abierta
         
         
         total_width = app.winfo_width()
 
+        # Crea una nueva ventana
         app_sp = ctk.CTk()
-        Facturacion.ventanas_secundarias.append(app_sp)
+        Facturacion.ventanas_secundarias.append(app_sp)  # Añade esta ventana a la lista de ventanas secundarias
 
+        # Establece el icono de la ventana en Windows
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             app_sp.iconbitmap(Facturacion.icon_path)
 
-        app_sp.title("Buscar Factura")
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("dark-blue")
+        app_sp.title("Buscar Factura")  # Título de la ventana
+        ctk.set_appearance_mode("dark")  # Modo oscuro
+        ctk.set_default_color_theme("dark-blue")  # Tema de colores
 
+        # Establece el icono de la ventana si existe
         icon_path = "resources/logos/icon_logo.ico"
         if icon_path and os.path.exists(icon_path):
             app_sp.iconbitmap(icon_path)
 
+        # Obtiene el monitor principal y configura la geometría de la ventana
         monitors = screeninfo.get_monitors()
         main_monitor = next((m for m in monitors if m.is_primary), monitors[0])
         window_width = int(main_monitor.width * 0.55)
@@ -1359,6 +1456,7 @@ class Facturacion:
         app_sp.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
         app_sp.resizable(False, False)
 
+        # Fuentes y espaciado
         fuente_labels = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.03))
         fuente_boton = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.038))
         fuente_titulo = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.053))
@@ -1372,25 +1470,18 @@ class Facturacion:
 
         contenido_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
         contenido_frame.pack(expand=True)
-        
-        campos_nombres = [
-        "ID Documento",
-        "TipoFactura",
-        "DNI / CIF",
-        "FechaFactura",
-        "TipoTransacción",
-        "Clase",
-        "Centro",
-        "Serie",
-        "Referencia",
-        "R.E.C."
-        ]
 
-        entradas = {}
-        columnas_por_fila = 3
+        # Lista de campos de texto simples
+        campos_nombres = [
+        "ID Documento","TipoFactura","DNI / CIF","FechaFactura","TipoTransacción","Clase",
+        "Centro","Serie","Referencia","R.E.C."]
+
+        entradas = {}  # Diccionario para guardar los campos
+        columnas_por_fila = 3  # Cantidad de campos por fila
         fila_actual = ctk.CTkFrame(contenido_frame, fg_color="transparent")
         fila_actual.pack(pady=int(window_height * 0.01))
 
+        # Crear los Entry por cada campo de texto
         count = 0
         for texto in campos_nombres:
             if count % columnas_por_fila == 0 and count != 0:
@@ -1403,12 +1494,13 @@ class Facturacion:
             entradas[texto] = campo
             count += 1
             
+            # Efectos de focus en el campo
             campo.bind("<FocusIn>", lambda event, e=campo: Facturacion.on_focus_in_entry(e))
             campo.bind("<FocusOut>", lambda event, e=campo: Facturacion.on_focus_out_entry(e))
 
+        # Campos especiales que requieren operadores o selección
         bloques_especiales = [
 
-            
             [("Cobro (€)", "num"),
             ("Cesado", ctk.CTkOptionMenu, ["", "Sí", "No"]),
             ("FechaFactura", "fecha")]
@@ -1421,12 +1513,13 @@ class Facturacion:
             ">": ">="
         }
 
-        condiciones_fecha = {}
-        condiciones_num = {}
+        condiciones_fecha = {}  # Guarda el operador seleccionado para fechas
+        condiciones_num = {}    # Guarda el operador seleccionado para números
 
         especiales_frame = ctk.CTkFrame(contenido_frame, fg_color="transparent")
         especiales_frame.pack(pady=int(window_height * 0.01))
 
+        # Crear widgets especiales (Números con botón de comparación, optionmenus, o fechas con botón de mayor o menor)
         for fila in bloques_especiales:
             fila_frame = ctk.CTkFrame(especiales_frame, fg_color="transparent")
             fila_frame.pack(pady=int(window_height * 0.01))
@@ -1443,6 +1536,7 @@ class Facturacion:
                 ).pack(anchor="w", pady=(0, int(window_height * 0.005)))
 
                 if tipo_widget == "fecha":
+                    # Campo de fecha con operador
                     campo_container = ctk.CTkFrame(sub_frame, fg_color="transparent")
                     campo_container.pack()
 
@@ -1470,6 +1564,7 @@ class Facturacion:
 
                     condiciones_fecha[texto] = operador_menu
 
+                # Campo numérico con operador
                 elif tipo_widget == "num":
                     campo_container = ctk.CTkFrame(sub_frame, fg_color="transparent")
                     campo_container.pack()
@@ -1498,6 +1593,7 @@ class Facturacion:
 
                     condiciones_num[texto] = operador_menu
 
+                # OptionMenu simple (por ejemplo, Cesado)
                 else:
                     opciones = extra[0]
                     campo = tipo_widget(
@@ -1517,8 +1613,8 @@ class Facturacion:
 
                 entradas[texto] = campo
 
+        # Función que realiza la búsqueda al pulsar el botón
         def buscar():
-            import sqlite3
 
             datos = {k: v.get().strip() for k, v in entradas.items()}
             print("Datos recogidos:", datos)
@@ -1532,6 +1628,7 @@ class Facturacion:
                 condiciones = []
                 valores = []
 
+                # Mapea los nombres del UI a los nombres reales en la BD
                 campos_db = {
                     "ID Documento": "IDDocumento",
                     "TipoFactura": "tipoFactura",
@@ -1553,6 +1650,7 @@ class Facturacion:
                             operador_ui = condiciones_fecha[campo_ui].get()  # =, < o >
                             operador_sql = operadores_fecha.get(operador_ui, "=")  # =, <=, >=
 
+                            # Transformación del formato de fechas
                             try:
                                 fecha_obj = datetime.strptime(valor, "%d/%m/%Y")
                                 valor_sql = fecha_obj.strftime("%Y-%m-%d")
@@ -1567,6 +1665,7 @@ class Facturacion:
 
                 where_clause = " AND ".join(condiciones) if condiciones else "1"
 
+                #Ejecución de la query con todos los campos que hemos querido saber 
                 Facturacion.current_page = 1
                 cursor.execute(f"SELECT COUNT(*) FROM {tabla} WHERE {where_clause}", valores)
                 total_rows = cursor.fetchone()[0]
@@ -1591,6 +1690,7 @@ class Facturacion:
 
                 conn.close()
 
+                # Actualiza la tabla principal con los nuevos resultados
                 Facturacion.Filtro = bool(condiciones)
                 Facturacion.query = where_clause
                 Facturacion.query_params = valores
@@ -1614,6 +1714,7 @@ class Facturacion:
             except sqlite3.Error as e:
                 print("Error al buscar Facturas:", e)
 
+        # Botón para realizar la búsqueda
         boton_buscar = ctk.CTkButton(
             main_frame,
             text="Buscar",
@@ -1627,6 +1728,7 @@ class Facturacion:
             command=buscar
         )
         
+        # Acción al cerrar la ventana
         def on_closing():
             Facturacion.ventana_abierta = False
             Facturacion.ventanas_secundarias.remove(app_sp)
@@ -1634,20 +1736,26 @@ class Facturacion:
 
         boton_buscar.pack(pady=int(window_height * 0.03))
         app_sp.protocol("WM_DELETE_WINDOW", on_closing)
-        app_sp.bind("<Return>", lambda event: buscar())
+        app_sp.bind("<Return>", lambda event: buscar()) # Permite pulsar Enter para buscar
 
-        app_sp.mainloop()
+        app_sp.mainloop() # Ejecuta la ventana
 
 
+# Funciones para ordenar las columnas de la tabla--------------------------------------------------------------------
     @staticmethod
     def sort_by_column(column, frame_right, clear_frame_right, app):
+        # Si ya se está ordenando por esta columna, se cambia el orden (ascendente <-> descendente)
         if Facturacion.sort_column == column:
             Facturacion.sort_ascending = not Facturacion.sort_ascending
+        # Si es una columna nueva, se establece como columna actual de ordenación y en orden ascendente
         else:
             Facturacion.sort_column = column
             Facturacion.sort_ascending = True
 
+        # Se resetea la página actual a la primera (importante para paginación)
         Facturacion.current_page = 1
+
+        # Se recargan los datos con la nueva ordenación
         Facturacion.load_data(frame_right, clear_frame_right, app)
 
     @staticmethod
@@ -1657,8 +1765,10 @@ class Facturacion:
             if col != column:
                 Facturacion.sort_states[col] = None
 
+        # Obtiene el estado actual de la columna seleccionada (puede ser 'asc', 'desc' o None)
         current = Facturacion.sort_states.get(column)
 
+        # Ciclo de estados: asc -> desc -> None -> asc ...
         if current == "asc":
             Facturacion.sort_states[column] = "desc"
         elif current == "desc":
@@ -1666,7 +1776,7 @@ class Facturacion:
         else:
             Facturacion.sort_states[column] = "asc"
 
-        # Actualizar columna y orden actuales
+        # Actualiza la columna y el orden actuales según el nuevo estado
         Facturacion.sort_column = column if Facturacion.sort_states[column] else None
         Facturacion.sort_order = Facturacion.sort_states[column] or ""
 
@@ -1674,12 +1784,13 @@ class Facturacion:
 
     @staticmethod
     def refresh_treeview_headings(tree, frame_right, clear_frame_right, app):
-        from functools import partial
+        # Actualiza los encabezados del Treeview para reflejar el estado de ordenación actual
 
         for col in Facturacion.visible_columns:
-            sort_state = Facturacion.sort_states.get(col)
-            base_text = Facturacion.column_name_map.get(col, col)
+            sort_state = Facturacion.sort_states.get(col)  # estado actual de orden de esa columna
+            base_text = Facturacion.column_name_map.get(col, col)  # nombre legible de la columna
 
+            # Añade un símbolo al encabezado según el estado de orden (▲ para asc, ▼ para desc)
             if sort_state == "asc":
                 heading_text = f"{base_text} ▲"
             elif sort_state == "desc":
@@ -1687,7 +1798,7 @@ class Facturacion:
             else:
                 heading_text = base_text
 
-            # Vuelve a aplicar heading y command
+            # Asigna nuevamente el encabezado al Treeview y enlaza el evento de clic
             tree.heading(
                 col,
                 text=heading_text,
@@ -1698,6 +1809,13 @@ class Facturacion:
 
     @staticmethod
     def sort_column_click(col, tree, frame_right, clear_frame_right, app):
+
+        # Al hacer clic en un encabezado de columna:
+        # Se actualiza el estado de orden (asc, desc, o ninguno)
         Facturacion.update_sort_state(col)
-        Facturacion.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)  # ← aquí
+
+        # Se refrescan los encabezados para mostrar los símbolos de orden correctamente
+        Facturacion.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)
+    
+        # Se recargan los datos con la nueva ordenación aplicada
         Facturacion.load_data(frame_right, clear_frame_right, app)

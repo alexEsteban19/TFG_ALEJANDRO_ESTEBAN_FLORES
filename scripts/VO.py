@@ -12,11 +12,17 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from textwrap import wrap
-from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
+from functools import partial
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from babel.dates import format_datetime
+from fpdf import FPDF
 
 class VO:
+    
+    # Definimos variables base
     current_page = 1
     rows_per_page = 20
     visible_columns = None
@@ -34,6 +40,7 @@ class VO:
     sort_states = {}  # Diccionario: {"columna": "asc" | "desc" | None}
 
 
+    # todos los datos de la BD
     column_name_map = {
         "matriculaVO": "Matricula",
         "numeroExpediente": "Nº Expediente",
@@ -70,6 +77,7 @@ class VO:
         "FechaReservaVO": "Fecha Reserva"
     }
     
+    # Datos que muestra la tabla
     column_options = {
         "matriculaVO": "Matricula",
         "numeroExpediente": "Nº Expediente",
@@ -93,6 +101,7 @@ class VO:
     }
 
 
+    # Metodo para crear la tabla
     @staticmethod
     def create_table(query, columns, data, frame_right, app, clear_frame_right, total_pages, Filtro):
         for widget in frame_right.winfo_children():
@@ -109,7 +118,7 @@ class VO:
                                   ,"situacion","DiasStock","ubicacionStock","PrecioVentaVO"
                                   ,"FechaTransferenciaCompleta","FechaITVhasta", "cifExpropietario"]
             
-        # 🔒 Crear contenedor invisible
+        # Crear contenedor invisible
         main_container = ctk.CTkFrame(frame_right, fg_color="#3d3d3d")
         main_container.place_forget()
 
@@ -117,7 +126,7 @@ class VO:
         main_frame = ctk.CTkFrame(main_container, fg_color="#3d3d3d")
         main_frame.pack(fill="both", expand=True, padx=int(rel_size // 1.5), pady=int(rel_size // 1.5))
 
-        #Estilo Botones
+        # Estilo Botones
         btn_color = "black"
         btn_hover = "#16466e"
         icon_size = (int(rel_size * 3), int(rel_size * 2))
@@ -161,11 +170,11 @@ class VO:
         clear_search_button.pack(side="left", padx=rel_size // 1.5)
 
 
-        # 🔹 Frame desplegable principal
+        # Frame desplegable principal
         column_filter_frame = ctk.CTkFrame(frame_right, fg_color="black", corner_radius=15, width=300)
         filter_open = [False]  # Para mutabilidad
 
-        # 🔹 Frame para el botón fijo en la parte de abajo
+        # Frame para el botón fijo en la parte de abajo
         button_frame = ctk.CTkFrame(column_filter_frame, fg_color="black")
         button_frame.pack(anchor="w",side="bottom",fill="both")
 
@@ -181,11 +190,11 @@ class VO:
         )
         apply_button.pack(pady=rel_size // 5, padx=rel_size // 7)
 
-        # 🔹 Scrollable frame para los checkboxes
+        # Scrollable frame para los checkboxes
         checkbox_scroll_frame = ctk.CTkScrollableFrame(column_filter_frame, fg_color="black")
         checkbox_scroll_frame.pack(side="top", fill="both", expand=True)
 
-        # 🔹 Variables y checkboxes
+        # Variables y checkboxes
         selected_columns = {
             col: ctk.BooleanVar(value=(col in VO.visible_columns)) for col in columns
         }
@@ -212,7 +221,7 @@ class VO:
 
 
       
-        # 🔹 Funciones toggle y apply
+        # Funciones toggle y apply
         def toggle_filter_dropdown():
             padding_x = 0.015  # Márgenes horizontales (relativos)
             padding_y = 0.02   # Márgenes verticales (relativos)
@@ -248,13 +257,13 @@ class VO:
                                     command=toggle_filter_dropdown)
         filter_button.pack(side="left", padx=rel_size // 1.5)
         
-        #Tabla
+        # Tabla
         tree_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         tree_frame.pack(fill="both", expand=True, padx=rel_size, pady=rel_size // 14)
 
         heading_font_size = int(rel_size)
 
-        #Botones Navegación
+        # Botones Navegación
         nav_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         nav_frame.pack(side="top", fill="x", padx=int(rel_size // 3), pady=int(rel_size // 3))
 
@@ -282,7 +291,7 @@ class VO:
                                 command=lambda: VO.change_page(1, frame_right, clear_frame_right, app))
         next_btn.pack(side="left", padx=rel_size, pady=rel_size/ 1.5)
         
-        #Botones Agregar/Modificar/Borrar
+        # Botones Agregar/Modificar/Borrar
         action_frame = ctk.CTkFrame(nav_frame, fg_color="#3d3d3d")
         action_frame.pack(side="right", padx=rel_size, pady=rel_size // 1.5)
 
@@ -361,8 +370,6 @@ class VO:
         tree.tag_configure('evenrow', background='#1a1a1a')  # Gris oscuro
         tree.tag_configure('oddrow', background='black')     # Negro
 
-        from functools import partial
-
         for col in VO.visible_columns:
             tree.heading(
                 col,
@@ -407,7 +414,7 @@ class VO:
 
         tree.bind("<<TreeviewSelect>>", lambda event: VO.on_item_selected(tree))
 
-        # ✅ MOSTRAR el frame principal una vez terminado
+        # Mostrar el frame principal una vez terminado
         main_container.place(relwidth=1.0, relheight=1.0)
         VO.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)
 
@@ -1401,16 +1408,6 @@ class VO:
 
     @staticmethod
     def sell_inform(app):
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import A4
-        from reportlab.lib.units import cm
-        from reportlab.lib.utils import ImageReader
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-        from datetime import datetime
-        import os
-        import sqlite3
-        from tkinter import messagebox
 
         if VO.selected_VO is None:
             messagebox.showerror("Error", "No hay coche seleccionado. No se puede generar la ficha de venta.", parent=app)
@@ -1542,16 +1539,6 @@ class VO:
 
     @staticmethod
     def generar_informe_pdf_fijo(paginas, ruta_salida="informe_VO.pdf"):
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import landscape, A4
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.lib.utils import ImageReader
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-        from textwrap import wrap
-        from datetime import datetime
-        from babel.dates import format_datetime
 
         columnas = [
             "Matrícula",
@@ -1666,13 +1653,106 @@ class VO:
 
         c.save()
 
+    # Genera un informe PDF en formato horizontal con los datos proporcionados en múltiples páginas.
+    # Cada página incluye un logo, título, encabezado de columnas y filas con datos, además de pie 
+    # de página con la fecha y número de página.
+
+    @staticmethod
+    def generar_informe_pdf(paginas, columnas, ruta_salida="informe_facturas_personalizado.pdf"):
+
+        # Registrar la fuente personalizada desde el archivo .ttf
+        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
+        pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
+
+        # Crear el canvas del PDF en orientación horizontal
+        c = canvas.Canvas(ruta_salida, pagesize=landscape(A4))
+        width, height = landscape(A4)
+
+        # Ruta del logo y margen izquierdo
+        logo_path = "resources/logos/hgcnegro.png"
+        x = 1 * cm  # margen izquierdo
+        total_padding = 2 * cm  # márgenes izquierdo y derecho combinados
+
+        # Cálculo del ancho de cada columna
+        num_columnas = len(columnas)
+        peso_columna = (width - total_padding) / num_columnas
+
+        # Configuración de estilo
+        font_size = 9
+        altura_fila = 0.75 * cm
+        altura_encabezado = 1.0 * cm
+        max_chars_per_line = 30 
+        total_paginas = len(paginas)
+
+        # Iterar por cada página de datos
+        for num_pagina, datos_pagina in enumerate(paginas, start=1):
+            y = height - 1 * cm
+
+            # Mover logo a la derecha
+            try:
+                logo = ImageReader(logo_path)
+                orig_width, orig_height = logo.getSize()
+                logo_width = 4 * cm
+                logo_height = (orig_height / orig_width) * logo_width
+                c.drawImage(logo, width - logo_width - x, y - logo_height + 0.5 * cm, width=logo_width, height=logo_height, mask='auto')
+            except:
+                pass  # Si el logo no se encuentra o da error, se omite
+
+            y -= 1.4 * cm
+
+            # Título a la izquierda
+            c.setFont("Sans Sulex", 14)
+            c.setFillColor(colors.black)
+            c.drawString(x, y, "LISTADO DE FACTURAS")
+
+            y -= 1.4 * cm
+
+            # Encabezados
+            c.setFillColorRGB(0.27, 0.27, 0.27)
+            c.rect(x - 0.1 * cm, y - 0.1 * cm, width - total_padding + 0.2 * cm, altura_encabezado, fill=True, stroke=False)
+            c.setFillColor(colors.white)
+            c.setFont("Sans Sulex", font_size + 1)
+
+            col_x = x
+            for col in columnas:
+                nombre_col = str(col)[:max_chars_per_line]
+                c.drawString(col_x, y + altura_encabezado / 2 - font_size / 2.5, nombre_col)
+                col_x += peso_columna
+
+            y -= altura_encabezado  # bajar para dibujar las filas
+            c.setFont("Sans Sulex", font_size)
+
+            # Dibujar filas de datos
+            for fila in datos_pagina:
+                c.setFillColor(colors.whitesmoke if datos_pagina.index(fila) % 2 == 0 else colors.lightgrey)
+                c.rect(x - 0.1 * cm, y - 0.1 * cm, width - total_padding + 0.2 * cm, altura_fila, fill=True, stroke=False)
+                c.setFillColor(colors.black)
+
+                col_x = x
+                for idx, item in enumerate(fila):
+                    texto = str(item) if item is not None else ""
+                    max_chars = int((peso_columna / cm) * 5.5)
+                    lineas = wrap(texto, width=max_chars)[:2]
+                    for j, linea in enumerate(lineas):
+                        c.drawString(col_x, y + altura_fila / 2 - j * (font_size + 1.5), linea)
+                    col_x += peso_columna
+
+                y -= altura_fila
+
+            # Pie de página con fecha actual y número de página
+            fecha_actual = format_datetime(datetime.now(), "EEEE, d 'de' MMMM 'de' y, HH:mm", locale="es")
+            c.setFont("Sans Sulex", 9)
+            c.setFillColor(colors.black)
+            c.drawString(x, 0.4 * cm, f"Fecha de creación: {fecha_actual}")
+            c.drawRightString(width - x, 0.4 * cm, f"Página {num_pagina} de {total_paginas}")
+
+            c.showPage()
+
+        c.save() # Guardar todo el progreso
+
+
     @staticmethod
     def generar_grafico_pdf(ruta):
-        import sqlite3
-        import matplotlib.pyplot as plt
-        from matplotlib import font_manager
-        from fpdf import FPDF
-        from datetime import datetime
 
         # ─── 1. Registrar la fuente personalizada ───
         font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
@@ -2176,7 +2256,6 @@ class VO:
 
     @staticmethod
     def refresh_treeview_headings(tree, frame_right, clear_frame_right, app):
-        from functools import partial
 
         for col in VO.visible_columns:
             sort_state = VO.sort_states.get(col)
@@ -2201,7 +2280,7 @@ class VO:
     @staticmethod
     def sort_column_click(col, tree, frame_right, clear_frame_right, app):
         VO.update_sort_state(col)
-        VO.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)  # ← aquí
+        VO.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)
         VO.load_data(frame_right, clear_frame_right, app)
 
 
