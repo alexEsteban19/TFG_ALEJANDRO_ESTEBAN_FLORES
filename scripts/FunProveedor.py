@@ -394,7 +394,7 @@ class Proveedor:
 
     @staticmethod
     def load_data(frame_right, clear_frame_right, app):
-        db_path = "bd/BDSellCars1.db"
+        db_path = "bd/Concesionario.db"
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
@@ -616,7 +616,7 @@ class Proveedor:
                 return
             
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         INSERT INTO Proveedor (
@@ -685,7 +685,7 @@ class Proveedor:
         Proveedor.ventana_abierta = True
 
         icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -813,7 +813,7 @@ class Proveedor:
                 return
 
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         UPDATE Proveedor SET
@@ -878,7 +878,7 @@ class Proveedor:
 
         if respuesta:
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute("DELETE FROM Proveedor WHERE dni_cif = ?", (selected_dni,))
                     conn.commit()
@@ -893,7 +893,7 @@ class Proveedor:
             return
     @staticmethod
     def obtener_datos_filtrados(columnas_sql):
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
 
         if Proveedor.Filtro:
@@ -1291,7 +1291,7 @@ class Proveedor:
     @staticmethod
     def get_all_proveedor_data():
 
-        conn = sqlite3.connect("bd/BDSellCars1.db")  # cambia según uses
+        conn = sqlite3.connect("bd/Concesionario.db")  # cambia según uses
         cursor = conn.cursor()
 
         columns = Proveedor.visible_columns
@@ -1409,7 +1409,7 @@ class Proveedor:
             datos = {k: (v.get().strip() if isinstance(v, ctk.CTkEntry) else v.get()) for k, v in entradas.items()}
             print("Datos recogidos:", datos)
 
-            db_path = "bd/BDSellCars1.db"
+            db_path = "bd/Concesionario.db"
 
             try:
                 conn = sqlite3.connect(db_path)
@@ -1538,7 +1538,7 @@ class Proveedor:
         Proveedor.ventana_abierta = True  # Marcamos la ventana como abierta
 
         icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
         cursor.execute("SELECT dni_cif FROM Proveedor WHERE dni_cif = ?", (dni_cif,))
         proveedor = cursor.fetchone()
@@ -1693,7 +1693,7 @@ class Proveedor:
                 return
 
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute(f"""
                         INSERT INTO FacturasProveedores (

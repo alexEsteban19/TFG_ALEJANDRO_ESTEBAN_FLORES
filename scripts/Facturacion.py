@@ -433,7 +433,7 @@ class Facturacion:
     # Metodo  que nos ayuda a cargar todos los datos que vamos a escribir en la base de datos
     @staticmethod
     def load_data(frame_right, clear_frame_right, app):
-        db_path = "bd/BDSellCars1.db"
+        db_path = "bd/Concesionario.db"
         try:
             #Creamos la conexión con la base de datos
             conn = sqlite3.connect(db_path)
@@ -572,7 +572,7 @@ class Facturacion:
         # Recolección de todos los datos de la factura seleccionada
         icon_path = "resources/logos/icon_logo.ico"
         tabla = Facturacion.tabla_seleccionada
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
         cursor.execute(f"SELECT * FROM {tabla} WHERE IDDocumento = ?", (selected_Factura,))
         factura = cursor.fetchone()
@@ -759,7 +759,7 @@ class Facturacion:
 
             # Si todo es válido, hacemos el update
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     # En el cursos, ponemos {tabla}, para insertar los datos en la tabla necesaria, y asi podemos
                     # ahorrar algo de código
@@ -819,7 +819,7 @@ class Facturacion:
         if respuesta:
             try:
                 #Sentencia del borrado del registro por medio de la localización de este por su ID
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute(f"DELETE FROM {tabla} WHERE IDDocumento = ?;", (selected_Factura,))
                     conn.commit()
@@ -836,7 +836,7 @@ class Facturacion:
     # 
     @staticmethod
     def obtener_datos_filtrados(columnas_sql):
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
 
         tabla = Facturacion.tabla_seleccionada  #tomamos la tabla seleccionada
@@ -1302,7 +1302,7 @@ class Facturacion:
                 return
 
             # === OBTENER DATOS DE FACTURA ===
-            conn = sqlite3.connect("bd/BDSellCars1.db")
+            conn = sqlite3.connect("bd/Concesionario.db")
             cursor = conn.cursor()
             tabla = Facturacion.tabla_seleccionada  # Determinar la tabla activa
             cursor.execute(f"SELECT * FROM {tabla} WHERE IDDocumento = ?", (Facturacion.selected_Factura,))
@@ -1617,7 +1617,7 @@ class Facturacion:
             datos = {k: v.get().strip() for k, v in entradas.items()}
             print("Datos recogidos:", datos)
 
-            db_path = "bd/BDSellCars1.db"
+            db_path = "bd/Concesionario.db"
 
             try:
                 conn = sqlite3.connect(db_path)

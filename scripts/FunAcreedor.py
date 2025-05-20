@@ -397,7 +397,7 @@ class Acreedor:
 
     @staticmethod
     def load_data(frame_right, clear_frame_right, app):
-        db_path = "bd/BDSellCars1.db"
+        db_path = "bd/Concesionario.db"
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
@@ -581,7 +581,7 @@ class Acreedor:
                 return  # Evita continuar y mantiene la ventana abierta
             
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         INSERT INTO Acreedor (
@@ -649,7 +649,7 @@ class Acreedor:
         Acreedor.ventana_abierta = True
 
         icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -746,7 +746,7 @@ class Acreedor:
                 return
 
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         UPDATE Acreedor SET
@@ -811,7 +811,7 @@ class Acreedor:
 
         if respuesta:
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute("DELETE FROM Acreedor WHERE dni_cif = ?", (selected_dni,))
                     conn.commit()
@@ -827,7 +827,7 @@ class Acreedor:
     
     @staticmethod
     def obtener_datos_filtrados(columnas_sql):
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
 
         if Acreedor.Filtro:
@@ -1225,7 +1225,7 @@ class Acreedor:
 
     @staticmethod
     def get_all_Acreedor_data():
-        conn = sqlite3.connect("bd/BDSellCars1.db")  # cambia según uses
+        conn = sqlite3.connect("bd/Concesionario.db")  # cambia según uses
         cursor = conn.cursor()
 
         columns = Acreedor.visible_columns
@@ -1317,7 +1317,7 @@ class Acreedor:
             where_clause = " AND ".join(condiciones)
 
             try:
-                conn = sqlite3.connect("bd/BDSellCars1.db")
+                conn = sqlite3.connect("bd/Concesionario.db")
                 cursor = conn.cursor()
 
                 Acreedor.query = where_clause
@@ -1401,7 +1401,7 @@ class Acreedor:
         Acreedor.ventana_abierta = True  # Marcamos la ventana como abierta
 
         icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
         cursor.execute("SELECT dni_cif FROM Acreedor WHERE dni_cif = ?", (dni_cif,))
         acreedor = cursor.fetchone()
@@ -1556,7 +1556,7 @@ class Acreedor:
                 return
 
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute(f"""
                         INSERT INTO FacturasAcreedores (

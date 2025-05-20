@@ -403,7 +403,7 @@ class Cliente:
 
     @staticmethod
     def load_data(frame_right, clear_frame_right, app):
-        db_path = "bd/BDSellCars1.db"
+        db_path = "bd/Concesionario.db"
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
@@ -640,7 +640,7 @@ class Cliente:
                 return  # Evita continuar y mantiene la ventana abierta
             
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         INSERT INTO Cliente (
@@ -708,7 +708,7 @@ class Cliente:
         Cliente.ventana_abierta = True  # Marcamos la ventana como abierta
 
         icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Cliente WHERE dni_cif = ?", (dni_cif,))
         cliente = cursor.fetchone()
@@ -913,7 +913,7 @@ class Cliente:
 
             # Si todo es válido, hacemos el update
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         UPDATE Cliente SET
@@ -965,7 +965,7 @@ class Cliente:
 
         if respuesta:
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute("DELETE FROM Cliente WHERE dni_cif = ?", (selected_dni,))
                     conn.commit()
@@ -981,7 +981,7 @@ class Cliente:
       
     @staticmethod
     def obtener_datos_filtrados(columnas_sql):
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
 
         if Cliente.Filtro:
@@ -1377,7 +1377,7 @@ class Cliente:
     
     @staticmethod
     def get_all_client_data():
-        conn = sqlite3.connect("bd/BDSellCars1.db")  # cambia según uses
+        conn = sqlite3.connect("bd/Concesionario.db")  # cambia según uses
         cursor = conn.cursor()
 
         columns = Cliente.visible_columns
@@ -1563,7 +1563,7 @@ class Cliente:
             datos = {k: v.get().strip() for k, v in entradas.items()}
             print("Datos recogidos:", datos)
 
-            db_path = "bd/BDSellCars1.db"
+            db_path = "bd/Concesionario.db"
 
             try:
                 conn = sqlite3.connect(db_path)
@@ -1706,7 +1706,7 @@ class Cliente:
         Cliente.ventana_abierta = True  # Marcamos la ventana como abierta
 
         icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
         cursor.execute("SELECT dni_cif FROM Cliente WHERE dni_cif = ?", (dni_cif,))
         cliente = cursor.fetchone()
@@ -1861,7 +1861,7 @@ class Cliente:
                 return
 
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute(f"""
                         INSERT INTO FacturasClientes (

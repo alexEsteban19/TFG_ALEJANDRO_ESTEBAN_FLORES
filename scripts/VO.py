@@ -438,7 +438,7 @@ class VO:
     # Metodo  que nos ayuda a cargar todos los datos que vamos a escribir en la base de datos
     @staticmethod
     def load_data(frame_right, clear_frame_right, app):
-        db_path = "bd/BDSellCars1.db"
+        db_path = "bd/Concesionario.db"
         try:
             #Creamos la conexión con la base de datos
             conn = sqlite3.connect(db_path)
@@ -807,7 +807,7 @@ class VO:
 
             # Si todo es válido, hacemos el update
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     # En el cursos, ponemos {tabla}, para insertar los datos en la tabla necesaria, y asi podemos
                     # ahorrar algo de código
@@ -887,7 +887,7 @@ class VO:
 
         # Recolección de todos los datos del vehículo seleccionado
         icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM VO WHERE matriculaVO = ?", (matriculaVO,))
         VhOc = cursor.fetchone()
@@ -1178,7 +1178,7 @@ class VO:
 
             # Si todo es válido, hacemos el update
             try:
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     # En el cursos, ponemos {tabla}, para insertar los datos en la tabla necesaria, y asi podemos
                     # ahorrar algo de código
@@ -1239,7 +1239,7 @@ class VO:
         if respuesta:
             try:
                 # Primero obtenemos la ruta de la imagen asociada al VO
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute("SELECT rutaImagen FROM VO WHERE matriculaVO = ?", (selected_VO,))
                     ruta_imagen = cursor.fetchone()
@@ -1252,7 +1252,7 @@ class VO:
                         messagebox.showwarning("Advertencia", f"No se pudo eliminar la imagen del VO:\n{e}")
 
                 # Ahora borramos el VO de la base de datos
-                with sqlite3.connect("bd/BDSellCars1.db") as conn:
+                with sqlite3.connect("bd/Concesionario.db") as conn:
                     cursor = conn.cursor()
                     cursor.execute("DELETE FROM VO WHERE matriculaVO = ?", (selected_VO,))
                     conn.commit()
@@ -1269,7 +1269,7 @@ class VO:
     
     @staticmethod
     def obtener_datos_filtrados(columnas_sql):
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
 
         if VO.Filtro:
@@ -1555,7 +1555,7 @@ class VO:
                 return
 
         # Conexión a la base de datos para recuperar datos del vehículo
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
         cursor.execute("""
             SELECT matriculaVO, numeroExpediente, marca, modelo, version, CV, CC,
@@ -1806,7 +1806,7 @@ class VO:
         plt.rcParams['font.family'] = prop.get_name()
 
         # ─── 2. Obtener datos ───
-        conn = sqlite3.connect("bd/BDSellCars1.db")
+        conn = sqlite3.connect("bd/Concesionario.db")
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -2120,7 +2120,7 @@ class VO:
             datos = {k: v.get().strip() for k, v in entradas.items()}
             print("Datos recogidos:", datos)
 
-            db_path = "bd/BDSellCars1.db"
+            db_path = "bd/Concesionario.db"
 
             try:
                 conn = sqlite3.connect(db_path)
