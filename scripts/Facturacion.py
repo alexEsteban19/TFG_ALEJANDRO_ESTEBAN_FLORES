@@ -23,8 +23,6 @@ import ctypes
 import platform
 
 
-
-
 class Facturacion:
     
     # Definimos variables base
@@ -110,7 +108,6 @@ class Facturacion:
         btn_hover = "#16466e"
         icon_size = (int(rel_size * 3), int(rel_size * 2))
         
-        #Barra dr Búsqueda
         search_frame = ctk.CTkFrame(main_frame, fg_color="transparent", corner_radius=int(rel_size // 2))
         search_frame.pack(fill="x", padx=rel_size // 6, pady=rel_size // 6)
         
@@ -147,7 +144,7 @@ class Facturacion:
             Facturacion.tabla_seleccionada = value
             Facturacion.clear_search(frame_right, clear_frame_right, app)
 
-        #Marco que actúa como borde para el OptionMenu de tablas (más compacto)
+        #Marco que actúa como borde para el OptionMenu de tablas
         option_menu_border = ctk.CTkFrame(
             search_frame,
             fg_color="white",
@@ -185,10 +182,11 @@ class Facturacion:
                                             command=lambda: Facturacion.clear_search(frame_right, clear_frame_right, app))
         clear_search_button.pack(side="left", padx=rel_size // 1.5)
 
-        # Frame desplegable para la selección de columnas (filtro)
+        # Frame desplegable para la selección de columnas (filtro)(oculto pero creado)
         column_filter_frame = ctk.CTkFrame(frame_right, fg_color="black", corner_radius=15, width=300)
         filter_open = [False]
 
+        # Frame para el botón fijo en la parte de abajo
         button_frame = ctk.CTkFrame(column_filter_frame, fg_color="black")
         button_frame.pack(anchor="w", side="bottom", fill="both")
 
@@ -255,7 +253,7 @@ class Facturacion:
             toggle_filter_dropdown()
             Facturacion.abrir_Factu(frame_right, clear_frame_right, app, mantener_filtro=True)
 
-        # Botón de filtro
+        # Botón para abrir el filtro
         filter_image = Image.open("resources/icons/white/ojoblanco.png").resize(icon_size)
         filter_image = ctk.CTkImage(light_image=filter_image)
         filter_button = ctk.CTkButton(search_frame, text="", image=filter_image, fg_color=btn_color,
@@ -271,7 +269,7 @@ class Facturacion:
 
         heading_font_size = int(rel_size)
 
-        # Botones Navegación
+        # Frame para los botones de Navegación
         nav_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         nav_frame.pack(side="top", fill="x", padx=int(rel_size // 3), pady=int(rel_size // 3))
 
@@ -302,7 +300,7 @@ class Facturacion:
                                 command=lambda: Facturacion.change_page(1, frame_right, clear_frame_right, app))
         next_btn.pack(side="left", padx=rel_size, pady=rel_size // 1.5)
         
-        # Botones Agregar/Modificar/Borrar
+        #Frame para Botones Vista de Factura/Modificar/Borrar
         action_frame = ctk.CTkFrame(nav_frame, fg_color="#3d3d3d")
         action_frame.pack(side="right", padx=rel_size, pady=rel_size // 1.5)
 
@@ -333,7 +331,7 @@ class Facturacion:
                                 border_width=1, border_color="white", command=lambda: Facturacion.delete_factura(Facturacion.selected_Factura, frame_right, clear_frame_right, app))
         delete_btn.pack(side="left", padx=rel_size // 2)
 
-#Pregunta
+        # Comprobación para que en caso de no haber página anterior o posterior, bloquear el respectivo botón
         if Facturacion.current_page == 1:
             prev_btn.configure(state="disabled")
         if Facturacion.current_page == total_pages:
@@ -366,6 +364,9 @@ class Facturacion:
         style.map("Treeview",
                 background=[("selected", "#16466e")],  # celeste oscuro al seleccionar
                 foreground=[("selected", "white")])    # texto blanco en selección
+        
+        style.map("Treeview.Heading",
+                background=[("active", "red")])  # Cambia el color que tú quieras
 
 
         # Creación del scrollbar lateral para la tabla
@@ -394,7 +395,7 @@ class Facturacion:
             tree.heading(col, text=Facturacion.column_name_map.get(col, col), anchor="center")
             tree.column(col, width=int(rel_size * 9), anchor="center", stretch=False)
 
-#Cambio Fecha-------------------------------------------------------------------------------------------------------------------
+    #Cambio Fecha-------------------------------------------------------------------------------------------------------------------
         def format_date(value):
             try:
                 # Detecta si el valor es una fecha en formato yyyy-mm-dd o yyyy/mm/dd
@@ -417,7 +418,7 @@ class Facturacion:
             
             tag = 'evenrow' if i % 2 == 0 else 'oddrow'
             tree.insert("", "end", values=filtered_row, tags=(tag,))
-#----------------------------------------------------------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------------------------------------------------------
 
         tree.pack(pady=rel_size // 1.5, fill="both", expand=True)
         tree.bind("<<TreeviewSelect>>", lambda event: Facturacion.on_item_selected(tree))
@@ -438,7 +439,6 @@ class Facturacion:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
 
-#Preguntar
             #Especificamos el offset
             offset = (Facturacion.current_page - 1) * Facturacion.rows_per_page
 
@@ -450,7 +450,6 @@ class Facturacion:
             if Facturacion.sort_column:
                 direction = Facturacion.sort_order if Facturacion.sort_order in ("asc", "desc") else "asc"
                 col = Facturacion.sort_column
-                # Para que a la hora de ordenar, tome en cuenta las letras con tilde, como letras normales
                 col_normalized = (
           f"REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(\"{col}\"), 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), 'Á', 'a'), 'É', 'e'), 'Í','i'), 'Ó','o'), 'Ú','u')"
                 )
@@ -537,7 +536,6 @@ class Facturacion:
 
         Facturacion.load_data(frame_right, clear_frame_right, app)
 
-    #
     @staticmethod
     def get_db_column_from_display_name(display_name):
         # Recorre el diccionario de mapeo entre nombres de base de datos y nombres mostrados en la interfaz
@@ -795,7 +793,7 @@ class Facturacion:
         appModify.bind("<Return>", lambda event: guardar_cambios(selected_Factura))
         appModify.mainloop()
 
-    # Metodo para selección de un usuario de la tabla
+    # Metodo para selección de una factura de la tabla
     @staticmethod
     def on_item_selected(tree):
         selected_item = tree.selection()
@@ -803,7 +801,7 @@ class Facturacion:
             Facturacion.selected_Factura = tree.item(selected_item, "values")[0]
     
 
-    # Metodo para borrar usuario
+    # Metodo para borrar factura
     @staticmethod
     def delete_factura(selected_Factura, frame_right, clear_frame_right, app):
         if not selected_Factura:
@@ -968,7 +966,7 @@ class Facturacion:
                 if check_personalizado.get():
                     check_predefinido.deselect()
 
-         # Escalado de la ventana según resolución de pantalla
+        # Escalado de la ventana según resolución de pantalla
         screen_w = app.winfo_screenwidth()
         screen_h = app.winfo_screenheight()
         ref_w, ref_h = 1920, 1080

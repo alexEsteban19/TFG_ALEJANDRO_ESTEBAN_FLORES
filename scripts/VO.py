@@ -1,24 +1,42 @@
-import sqlite3
-from tkinter import ttk, messagebox, filedialog
-import customtkinter as ctk
-from PIL import Image
-import screeninfo
+# --- Módulos estándar ---
 import os
 import sys
+import shutil
+import ctypes
 from datetime import datetime
-from reportlab.lib.pagesizes import landscape, A4
+from functools import partial
+from textwrap import wrap
+
+# --- Interfaz gráfica ---
+import customtkinter as ctk
+from tkinter import ttk, messagebox, filedialog
+
+# --- Pantalla e imágenes ---
+import screeninfo
+from PIL import Image
+
+# --- Base de datos ---
+import sqlite3
+
+# --- PDF con ReportLab ---
 from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
-from textwrap import wrap
-import matplotlib.pyplot as plt
-from matplotlib import font_manager
-from functools import partial
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from babel.dates import format_datetime
+
+# --- PDF alternativo con FPDF (si se usa) ---
 from fpdf import FPDF
+
+# --- Fechas con Babel (para localización si se usa) ---
+from babel.dates import format_datetime
+
+# --- Gráficos ---
+import matplotlib.pyplot as plt
+from matplotlib import font_manager
+
 
 class VO:
     
@@ -77,7 +95,7 @@ class VO:
         "FechaReservaVO": "Fecha Reserva"
     }
     
-    # Datos que muestra la tabla
+    # datos que muestra la tabla
     column_options = {
         "matriculaVO": "Matricula",
         "numeroExpediente": "Nº Expediente",
@@ -101,7 +119,7 @@ class VO:
     }
 
 
-    # Metodo para crear la tabla
+    # metodo para crear la tabla
     @staticmethod
     def create_table(query, columns, data, frame_right, app, clear_frame_right, total_pages, Filtro):
         for widget in frame_right.winfo_children():
@@ -126,7 +144,7 @@ class VO:
         main_frame = ctk.CTkFrame(main_container, fg_color="#3d3d3d")
         main_frame.pack(fill="both", expand=True, padx=int(rel_size // 1.5), pady=int(rel_size // 1.5))
 
-        # Estilo Botones
+        #Estilo Botones
         btn_color = "black"
         btn_hover = "#16466e"
         icon_size = (int(rel_size * 3), int(rel_size * 2))
@@ -257,13 +275,13 @@ class VO:
                                     command=toggle_filter_dropdown)
         filter_button.pack(side="left", padx=rel_size // 1.5)
         
-        # Tabla
+        #Tabla
         tree_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         tree_frame.pack(fill="both", expand=True, padx=rel_size, pady=rel_size // 14)
 
         heading_font_size = int(rel_size)
 
-        # Botones Navegación
+        #Botones Navegación
         nav_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         nav_frame.pack(side="top", fill="x", padx=int(rel_size // 3), pady=int(rel_size // 3))
 
@@ -291,7 +309,7 @@ class VO:
                                 command=lambda: VO.change_page(1, frame_right, clear_frame_right, app))
         next_btn.pack(side="left", padx=rel_size, pady=rel_size/ 1.5)
         
-        # Botones Agregar/Modificar/Borrar
+        #Botones Agregar/Modificar/Borrar
         action_frame = ctk.CTkFrame(nav_frame, fg_color="#3d3d3d")
         action_frame.pack(side="right", padx=rel_size, pady=rel_size // 1.5)
 
@@ -384,7 +402,7 @@ class VO:
 
         # Inserta filas con colores alternos
 
-##Picha Cambio Fecha-------------------------------------------------------------------------------------------------------------------
+#Cambio Fecha-------------------------------------------------------------------------------------------------------------------
         def format_date(value):
             try:
                 # Detecta si el valor es una fecha en formato yyyy-mm-dd o yyyy/mm/dd
@@ -400,7 +418,7 @@ class VO:
         for i, row in enumerate(data):
             filtered_row = [row[columns.index(col)] for col in VO.visible_columns]
             
-            # ➕ Formatea las fechas antes de mostrarlas
+            # Formatea las fechas antes de mostrarlas
             for j, col in enumerate(VO.visible_columns):
                 if "fecha" in col.lower() and isinstance(filtered_row[j], str):
                     filtered_row[j] = format_date(filtered_row[j])
@@ -408,31 +426,26 @@ class VO:
             tag = 'evenrow' if i % 2 == 0 else 'oddrow'
             tree.insert("", "end", values=filtered_row, tags=(tag,))
 #----------------------------------------------------------------------------------------------------------------------------------------
-
-            
+        
         tree.pack(pady=rel_size // 1.5, fill="both", expand=True)
-
         tree.bind("<<TreeviewSelect>>", lambda event: VO.on_item_selected(tree))
 
         # Mostrar el frame principal una vez terminado
         main_container.place(relwidth=1.0, relheight=1.0)
+        # Llamada al metodo de refrescar los headings (Necesario para que se vea la flecha de ordenación de la columna)
         VO.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)
 
-    @staticmethod
-    def search_data(query, search_column, frame_right, clear_frame_right, app):
-        VO.query = query
-        VO.search_column = search_column
-        VO.Filtro = True
-        VO.current_page = 1
-        VO.load_data(frame_right, clear_frame_right, app)
-
+    # Metodo  que nos ayuda a cargar todos los datos que vamos a escribir en la base de datos
     @staticmethod
     def load_data(frame_right, clear_frame_right, app):
         db_path = "bd/BDSellCars1.db"
         try:
+            #Creamos la conexión con la base de datos
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
 
+#Preguntar
+            # Especificamos el offset
             offset = (VO.current_page - 1) * VO.rows_per_page
 
             # Construir cláusula ORDER BY si hay orden seleccionado
@@ -444,19 +457,27 @@ class VO:
                 col_normalized = (
                     f"REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER({col}), 'á', 'a'), 'é', 'e'), 'í', 'i'), 'ó', 'o'), 'ú', 'u'), 'Á', 'a'), 'É', 'e')"  # puedes expandir si quieres más letras
                 )
+                # Sentencia de ordenación
                 order_clause = f"ORDER BY {col_normalized} {direction}"
             else:
                 order_clause = ""
 
+            # Sentencias, que dependiendo de si hay filtro o no, para el conteo, para la creación de páginas
+            # y los datos que se van a mostrar
             if VO.Filtro:
+                # Sentencia para el conteo de datos
                 if isinstance(VO.query_params, list):  # viene de search_plus
                     count_sql = f"SELECT COUNT(*) FROM VO WHERE {VO.query}"
                     cursor.execute(count_sql, VO.query_params)
                     total_rows = cursor.fetchone()[0]
 
+                    # Sentencia para la recoleccion de datos
                     select_sql = f"SELECT * FROM VO WHERE {VO.query} {order_clause} LIMIT ? OFFSET ?"
                     cursor.execute(select_sql, VO.query_params + [VO.rows_per_page, offset])
-                else:  # viene de search_data
+
+
+                #(((((((Se puede borrar)))))))
+                else:  
                     cursor.execute(f"SELECT COUNT(*) FROM VO WHERE {VO.search_column} LIKE ?", (f"{VO.query}%",))
                     total_rows = cursor.fetchone()[0]
 
@@ -464,17 +485,22 @@ class VO:
                         f"SELECT * FROM VO WHERE {VO.search_column} LIKE ? {order_clause} LIMIT ? OFFSET ?",
                         (f"{VO.query}%", VO.rows_per_page, offset)
                     )
+            # Coger todos los datos cuando no hay filtros
             else:
+                # Conteo
                 cursor.execute("SELECT COUNT(*) FROM VO")
                 total_rows = cursor.fetchone()[0]
 
+                #Recolección de datos
                 cursor.execute(f"SELECT * FROM VO {order_clause} LIMIT ? OFFSET ?", (VO.rows_per_page, offset))
 
             data = cursor.fetchall()
             conn.close()
 
+            # Calculo del máximo de paginas que va a tener la recolecta de datos (cada página consta de 20 registros)
             total_pages = max((total_rows // VO.rows_per_page) + (1 if total_rows % VO.rows_per_page > 0 else 0), 1)
 
+            #Llamamos al metodo necesario para crear la tabla
             VO.create_table(
                 VO.query,
                 [
@@ -498,21 +524,22 @@ class VO:
             print("Error al cargar datos:", e)
 
 
-
+    #Metodo para refrescar la interfaz ,deshacer la búsqueda y volver a la página 1`
     @staticmethod
     def clear_search(frame_right, clear_frame_right, app):
         VO.Filtro = False
         VO.query = ""
         VO.search_column = ""
-        VO.current_page = 1
-            
+        VO.current_page = 1  
         VO.abrir_VO(frame_right, clear_frame_right, app)
 
+    #Metodo para el cambio de página
     @staticmethod
     def change_page(direction, frame_right, clear_frame_right, app):
         VO.current_page += direction
         VO.load_data(frame_right, clear_frame_right, app)
 
+    #Funcion para inicializar todo
     @staticmethod
     def abrir_VO(frame_right, clear_frame_right, app, mantener_filtro=False):
         if not mantener_filtro:
@@ -525,13 +552,17 @@ class VO:
 
     @staticmethod
     def get_db_column_from_display_name(display_name):
+        # Recorre el diccionario de mapeo entre nombres de base de datos y nombres mostrados en la interfaz
         for db_col, disp_name in VO.column_name_map.items():
             if disp_name == display_name:
-                return db_col
-        return display_name  # fallback en caso de no encontrarlo
+                return db_col  # Si encuentra coincidencia, devuelve el nombre real de columna en la base de datos
+
+        return display_name  # Si no encuentra el display_name, lo devuelve tal cual (por si ya es un nombre de columna válido)
+
 
     @staticmethod
     def add_VO(frame_right, clear_frame_right, app):
+        # Verifica si ya hay una ventana abierta, si es así, muestra un error y termina la función
         if VO.ventana_abierta:
             messagebox.showerror(
                 "Ventana ya abierta",
@@ -540,20 +571,23 @@ class VO:
             )
             return
 
+        # Marca la ventana como abierta
         VO.ventana_abierta = True
-        appAdd = ctk.CTk()
-        VO.ventanas_secundarias.append(appAdd)
+        appAdd = ctk.CTk()  # Crea una nueva ventana de CustomTkinter
+        VO.ventanas_secundarias.append(appAdd)  # Guarda referencia a esta ventana
 
+        # Configuración específica para Windows (icono de la aplicación)
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAdd.iconbitmap(VO.icon_path)
 
+        # Título y apariencia de la ventana
         appAdd.title("Agregar VO")
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
 
+        # Calcula tamaño y posición centrada de la ventana respecto al monitor principal
         monitors = screeninfo.get_monitors()
         main_monitor = next((m for m in monitors if m.is_primary), monitors[0])
         window_width = int(main_monitor.width * 0.55)
@@ -563,25 +597,31 @@ class VO:
         appAdd.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
         appAdd.resizable(False, False)
 
+        # Fuentes para diferentes elementos de la interfaz
         fuente_labels = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.022))
         fuente_boton = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.03))
         fuente_titulo = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.045))
 
+        # Marco principal de contenido
         padding_relativo = int(window_height * 0.02)
         main_frame = ctk.CTkFrame(appAdd, fg_color="#373737", corner_radius=0)
         main_frame.pack(pady=padding_relativo, padx=padding_relativo, fill="both", expand=True)
 
+        # Título del formulario
         titulo = ctk.CTkLabel(main_frame, text="Agregar VO", font=fuente_titulo, text_color="white")
         titulo.pack(pady=(int(window_height // 37),int(window_height // 37)))
 
+        # Marco con scroll para los campos del formulario
         scroll_frame = ctk.CTkScrollableFrame(main_frame, fg_color="transparent")
         scroll_frame.pack(fill="both", expand=True, padx=(int(window_height // 45)), pady=(int(window_height // 18.5)))
 
+        # Opciones de los desplegables (option menus)
         opciones_tipo_vo = ["", "VO Garantía", "VO Ocasión", "KM 0", "Gerencia"]
         opciones_tipo_combustible = ["", "Gasolina", "Diésel", "Eléctrico", "Híbrido", "GLP", "GNC"]
         opciones_situacion = ["", "Disponible", "Reservado", "Vendido", "En trámite"]
         opciones_distintivo_ambiental = ["", "A", "B", "C", "ECO", "0"]
 
+        # Lista de campos del formulario
         campos = [
             "Matricula", "Nº Expediente", "Marca", "Modelo", "Versión", "Chasis",
             "Año Matriculación", "Fecha Matriculación", "Antigüedad", "Kilometros", "CC", "CV",
@@ -592,8 +632,9 @@ class VO:
             "DNI/CIF Expropietario", "Fecha Reserva"
         ]
 
-        entradas = []
+        entradas = []  # Lista para almacenar las entradas del formulario
 
+        # Generación de los campos del formulario de forma dinámica
         for campo in campos:
             fila = ctk.CTkFrame(scroll_frame, fg_color="transparent")
             fila.pack(fill="x", padx=int(window_height // 18.5), pady=int(window_height * 0.015))
@@ -601,6 +642,7 @@ class VO:
             label = ctk.CTkLabel(fila, text=campo + ":", font=fuente_labels, width=160, anchor="w", text_color="white")
             label.pack(side="left", padx=int(window_height // 18.5))
 
+            # Campo con menú desplegable
             if campo == "Tipo VO":
                 opciones = opciones_tipo_vo
                 om = ctk.CTkOptionMenu(fila, values=opciones, button_color="#990404",
@@ -641,6 +683,7 @@ class VO:
                 om.pack(side="left", fill="x", expand=True)
                 entradas.append(om)
 
+            # Campo de entrada de texto para fechas
             elif "Fecha" in campo:
                 entry_fecha = ctk.CTkEntry(fila, placeholder_text="dd/mm/yyyy", font=fuente_labels,
                                         fg_color="#181818", text_color="white")
@@ -648,7 +691,8 @@ class VO:
                 entradas.append(entry_fecha)
                 entry_fecha.bind("<FocusIn>", lambda event, e=entry_fecha: VO.on_focus_in_entry(e))
                 entry_fecha.bind("<FocusOut>", lambda event, e=entry_fecha: VO.on_focus_out_entry(e))
-
+                
+            # Campo de entrada de texto normal
             else:
                 entry = ctk.CTkEntry(fila, placeholder_text=campo, font=fuente_labels,
                                     fg_color="#181818", text_color="white")
@@ -657,7 +701,7 @@ class VO:
                 entry.bind("<FocusIn>", lambda event, e=entry: VO.on_focus_in_entry(e))
                 entry.bind("<FocusOut>", lambda event, e=entry: VO.on_focus_out_entry(e))
 
-                # Campo para seleccionar imagen
+        # Campo para seleccionar imagen
         fila_imagen = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         fila_imagen.pack(fill="x", padx=int(window_height // 18.5), pady=int(window_height * 0.015))
 
@@ -669,19 +713,18 @@ class VO:
         entry_ruta.pack(side="left", fill="x", expand=True, padx=5)
         entradas.append(entry_ruta)
 
+        # Función para seleccionar y copiar la imagen al directorio correspondiente
         def seleccionar_archivo():
             ruta_origen = filedialog.askopenfilename(
                 title="Selecciona una imagen",
                 filetypes=(("Archivos de imagen", "*.png *.jpg *.jpeg *.bmp *.gif"), ("Todos los archivos", "*.*"))
             )
+            # Esto se hace para que no se repita la imagen y se ponga en la carpeta de una forma "organizada"
             if ruta_origen:
                 nombre_usuario = entradas[0].get().strip()
                 if not nombre_usuario:
-                    messagebox.showerror("Error", "Introduce primero el Nombre de Usuario antes de seleccionar la imagen.", parent=appAdd)
+                    messagebox.showerror("Error", "Introduce primero la Matrícula antes de seleccionar la imagen.", parent=appAdd)
                     return
-
-                import os
-                import shutil
 
                 carpeta_destino = "imagenesCoches"
                 if not os.path.exists(carpeta_destino):
@@ -705,20 +748,22 @@ class VO:
                     entry_ruta.insert(0, ruta_destino)
                 except Exception as e:
                     messagebox.showerror("Error al copiar imagen", str(e), parent=appAdd)
-
+        
+        # Botón para seleccionar imagen
         boton_imagen = ctk.CTkButton(fila_imagen, text="Seleccionar Imagen", font=fuente_labels,
                                     command=seleccionar_archivo,
                                     fg_color="#990404", hover_color="#540303", border_color="black",
                                     border_width=2)
         boton_imagen.pack(side="right", padx=(5, int(window_height // 18.5)))
 
-        campos.append("rutaImagen")
+        campos.append("rutaImagen")  # Agrega el campo imagen a la lista de campos
 
+        # Función que guarda el nuevo vehículo en la base de datos
         def guardar_nuevo_VO():
-            valores = []
+            valores = [] # Lista para almacenar los valores extraídos del formulario
 
+            # Recorre todas las entradas del formulario (input fields)
             for idx, entrada in enumerate(entradas):
-                label = campos[idx].replace(" ", "").replace("º", "").replace("-", "")
                 contenido = entrada.get().strip()
 
                 if isinstance(entrada, ctk.CTkOptionMenu):
@@ -727,36 +772,45 @@ class VO:
                     else:
                         valores.append(entrada.get())
 
+                # Si el campo tiene una fecha
                 elif "Fecha" in campos[idx]:
                     if contenido == "":
-                        valores.append("")
+                        valores.append("") # Si está vacío, se deja vacío
                     else:
                         try:
+                            # Intenta convertir la fecha a formato YYYY-MM-DD
                             fecha = datetime.strptime(contenido, "%d/%m/%Y")
-                            valores.append(fecha.strftime("%Y-%m-%d"))
+                            valores.append(fecha.strftime("%Y-%m-%d")) # Formato correcto de fecha Para SQLite
+
+                        #Excepción para fechas invalidas o con formato erroneo
                         except ValueError:
                             messagebox.showerror(
                                 "Fecha inválida",
                                 f"La fecha ingresada en el campo '{campos[idx]}' no es válida.",
                                 parent=appAdd
                             )
-                            return
+                            return  # Abortamos el guardado
                 else:
                     valores.append(contenido)
 
+            # Validación: el campo Matricula no puede estar vacío
             matricula = valores[0]
             if not matricula:
                 messagebox.showerror("Error de Validación", "El campo 'Matrícula' no puede estar vacío.", parent=appAdd)
                 return
             
+            # Validación: el campo Nº Expediente no puede estar vacío
             expediente = valores[1]
             if not expediente:
                 messagebox.showerror("Error de Validación", "El campo 'Nº Expediente' no puede estar vacío.", parent=appAdd)
                 return
 
+            # Si todo es válido, hacemos el update
             try:
                 with sqlite3.connect("bd/BDSellCars1.db") as conn:
                     cursor = conn.cursor()
+                    # En el cursos, ponemos {tabla}, para insertar los datos en la tabla necesaria, y asi podemos
+                    # ahorrar algo de código
                     cursor.execute(f"""
                         INSERT INTO VO (
                             matriculaVO, numeroExpediente, marca, modelo, version, chasis,
@@ -767,12 +821,15 @@ class VO:
                             DistintivoAmbiental, FechaSalidaVO, FechaTransferenciaCompleta, FechaITVhasta,
                             cifExpropietario, FechaReservaVO, rutaImagen
                         ) VALUES ({','.join(['?'] * len(valores))})
-                    """, tuple(valores))
-                    conn.commit()
+                    """, tuple(valores))  # Se pasan los valores recogidos 
+                    conn.commit()  # Guarda los cambios
+
+                    # Refresca la interfaz después de actualizar y cierra la ventana de modificación
                     VO.clear_search(frame_right, clear_frame_right, app)
                     VO.ventana_abierta = False
                     appAdd.destroy()
 
+            # Manejo de errores comunes
             except sqlite3.IntegrityError as e:
                 messagebox.showerror("Error de Base de Datos", f"Error al insertar VO:\n{e}", parent=appAdd)
 
@@ -790,6 +847,7 @@ class VO:
         )
         boton_guardar.pack(pady=int(window_height * 0.03))
 
+        # Metodo para cerrar la ventana
         def on_closing():
             VO.ventana_abierta = False
             VO.ventanas_secundarias.remove(appAdd)
@@ -803,6 +861,7 @@ class VO:
     default_border_color = "#565b5e"  # Color del borde por defecto
     default_fg_color = "#181818"  # Color de fondo por defecto
     
+    # Focus para entrys
     def on_focus_in_entry(entry):
         entry.configure(border_color=VO.highlight_color)
         entry.configure(fg_color="#181818")
@@ -811,8 +870,10 @@ class VO:
         entry.configure(border_color=VO.default_border_color)
         entry.configure(fg_color=VO.default_fg_color)
 
+    # Metodo para la edición de vehículos
     @staticmethod
     def edit_VO(matriculaVO, frame_right, clear_frame_right, app):
+        # Metodo para la detección de otra ventana abierta (no abrir 2 ventanas a la vez)
         if VO.ventana_abierta:
             messagebox.showerror(
                 "Ventana ya abierta",
@@ -821,8 +882,10 @@ class VO:
             )
             return
 
+        # Marcar la ventana como abierta
         VO.ventana_abierta = True
 
+        # Recolección de todos los datos del vehículo seleccionado
         icon_path = "resources/logos/icon_logo.ico"
         conn = sqlite3.connect("bd/BDSellCars1.db")
         cursor = conn.cursor()
@@ -830,27 +893,32 @@ class VO:
         VhOc = cursor.fetchone()
         conn.close()
 
+        # Comprobación y exposición de un error si no hay ningún vehículo seleccionado
         if not VhOc:
             messagebox.showerror("Error", f"No hay un vehículo seleccionado")
             VO.ventana_abierta = False
             return
 
         appModify = ctk.CTk()
+        # Añadir la ventana a la array de ventanas secundarias
         VO.ventanas_secundarias.append(appModify)
 
+        # Asociamos el icono personalizado al proceso para que lo detecte bien
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appModify.iconbitmap(VO.icon_path)
 
+        # Titulo de la ventana
         appModify.title("Editar VO")
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
 
+        # Cambiar el icono de la ventana, si se proporciona una ruta
         if icon_path and os.path.exists(icon_path):
             app.iconbitmap(icon_path)
 
+        # Ajuste del tamaño de la ventana según el monitor
         monitors = screeninfo.get_monitors()
         main_monitor = next((m for m in monitors if m.is_primary), monitors[0])
         window_width = int(main_monitor.width * 0.55)
@@ -860,6 +928,7 @@ class VO:
         appModify.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
         appModify.resizable(False, False)
 
+        # Definir la fuente relativa para labels y botones
         fuente_labels = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.022))
         fuente_boton = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.03))
         fuente_titulo = ctk.CTkFont(family="Sans Sulex", size=int(window_height * 0.045))
@@ -868,12 +937,15 @@ class VO:
         main_frame = ctk.CTkFrame(appModify, fg_color="#373737", corner_radius=0)
         main_frame.pack(pady=padding_relativo, padx=padding_relativo, fill="both", expand=True)
 
+        # Título dentro de la ventana
         titulo = ctk.CTkLabel(main_frame, text="Editar VO", font=fuente_titulo, text_color="white")
         titulo.pack(pady=(int(window_height // 37), 37))
 
+        # Scrollable frame para los entry
         scroll_frame = ctk.CTkScrollableFrame(main_frame, fg_color="transparent")
         scroll_frame.pack(fill="both", expand=True, padx=int(window_height // 37), pady=int(window_height // 37))
 
+        # Campos para utilizarlos en conjunto con los entrys
         campos = [
             ("Matricula", VhOc[0]),
             ("Nº Expediente", VhOc[1]),
@@ -911,17 +983,22 @@ class VO:
             ("Ruta Imagen", VhOc[33])
         ]
 
+        # Opciones que estaran dentro de sus respectivos optionmenu
         opciones_tipo_vo = ["", "VO Garantía", "VO Ocasión", "KM 0", "Gerencia"]
         opciones_tipo_combustible = ["", "Gasolina", "Diésel", "Eléctrico", "Híbrido", "GLP", "GNC"]
         opciones_situacion = ["", "Disponible", "Reservado", "Vendido", "En trámite"]
         opciones_distintivo_ambiental = ["", "A", "B", "C", "ECO", "0"]
 
+        # Array para el guardado de los datos de los entry
         entradas = []
 
+        # Bucle para la creacion del contenido del scrollable frame
         for idx, (texto, valor) in enumerate(campos):
+            # Frame para el titulo y el entry
             fila = ctk.CTkFrame(scroll_frame, fg_color="transparent")
             fila.pack(fill="x", padx=int(window_height // 18.5), pady=int(window_height * 0.015))
 
+            # Titulo de la linea (cual va a ser el contenido del entry)
             label = ctk.CTkLabel(fila, text=texto + ":", font=fuente_labels, width=160, anchor="w", text_color="white")
             label.pack(side="left", padx=int(window_height // 18.5))
 
@@ -933,6 +1010,7 @@ class VO:
                 entry_ruta.pack(side="left", fill="x", expand=True)
                 entradas.append(entry_ruta)
 
+                # Función para la seleccion y agregación de una imagen
                 def seleccionar_archivo():
                     ruta_origen = filedialog.askopenfilename(
                         title="Selecciona una imagen",
@@ -943,9 +1021,6 @@ class VO:
                         if not nombre_usuario:
                             messagebox.showerror("Error", "Introduce primero el Nombre de Usuario antes de seleccionar la imagen.", parent=appModify)
                             return
-
-                        import os
-                        import shutil
 
                         carpeta_destino = "imagenesCoches"
                         if not os.path.exists(carpeta_destino):
@@ -977,12 +1052,14 @@ class VO:
                                         border_width=2)
                 boton_ruta.pack(side="left", padx=int(window_height // 37))
 
-
+            # Si el campo equivale a una fecha, se hace esto 
             elif "Fecha" in texto:
+                # Creamos un entry con un placeholder que equivale a lo que queremos que el usuario introduzca
                 entry_fecha = ctk.CTkEntry(fila, placeholder_text="dd/mm/yyyy", font=fuente_labels,
                                         fg_color="#181818", text_color="white")
                 if valor:
                     try:
+                        # Una vez introducida la fecha, se convierte a un formato adecuado para SQL 
                         fecha_convertida = datetime.strptime(valor.strip(), "%Y-%m-%d").strftime("%d/%m/%Y")
                         entry_fecha.insert(0, fecha_convertida)
                     except ValueError:
@@ -990,9 +1067,10 @@ class VO:
                 entry_fecha.pack(side="left", fill="x", expand=True)
                 entradas.append(entry_fecha)
 
+                # Para el focus del entry (cambio de color al centrarse en el campo)
                 entry_fecha.bind("<FocusIn>", lambda event, e=entry_fecha: VO.on_focus_in_entry(e))
                 entry_fecha.bind("<FocusOut>", lambda event, e=entry_fecha: VO.on_focus_out_entry(e))
-
+            # Creacion de los option menus o entrys normales
             else:
                 opciones = None
                 if texto == "Tipo VO":
@@ -1004,6 +1082,7 @@ class VO:
                 elif texto == "Distintivo Ambiental":
                     opciones = opciones_distintivo_ambiental
 
+                # "Decisión de creación de OptionMenu o Entry"
                 if opciones:
                     var = ctk.StringVar(value=valor if valor in opciones else opciones[0])
                     option_menu = ctk.CTkOptionMenu(fila, values=opciones, variable=var,
@@ -1036,14 +1115,15 @@ class VO:
         )
         boton_guardar.pack(pady=int(window_height * 0.03))
 
-
+        # Función para el guardado de los datos escritos dentro de la ventana que hemos creado arriba
         def guardar_cambios(matriculaVO):
-            valores = []
+            valores = [] # Lista para almacenar los valores extraídos del formulario
+
             ruta_imagen = None  # Variable para guardar la ruta de la imagen
 
+            # Recorre todas las entradas del formulario (input fields)
             for idx, entrada in enumerate(entradas):
-                label = campos[idx][0].replace(" ", "").replace("º", "").replace("-", "")
-                contenido = entrada.get().strip()
+                contenido = entrada.get().strip()  # Obtiene y limpia el texto del campo
 
                 # Validamos la ruta de la imagen solo si es el campo "Ruta Imagen"
                 if campos[idx][0] == "Ruta Imagen":
@@ -1060,19 +1140,23 @@ class VO:
                     if contenido == "":
                         valores.append("")
                     else:
+                        # Intenta convertir la fecha a formato YYYY-MM-DD
                         try:
                             fecha = datetime.strptime(contenido, "%d/%m/%Y")
-                            valores.append(fecha.strftime("%Y-%m-%d"))
+                            valores.append(fecha.strftime("%Y-%m-%d"))  # Formato correcto de fecha Para SQLite
+
+                        #Excepción para fechas invalidas o con formato erroneo
                         except ValueError:
                             messagebox.showerror(
                                 "Fecha inválida",
                                 f"La fecha ingresada en el campo '{campos[idx]}' no es válida.",
                                 parent=appModify
                             )
-                            return
+                            return   # Abortamos el guardado
                 else:
                     valores.append(contenido)
 
+            # Validación: el campo Matricula Y Nº Expediente no pueden estar vacios
             matricula = valores[0].strip()
             numexp = valores[1].strip()
 
@@ -1092,9 +1176,12 @@ class VO:
             else:
                 valores.append("")  # Si no se proporciona una ruta, dejamos la cadena vacía
 
+            # Si todo es válido, hacemos el update
             try:
                 with sqlite3.connect("bd/BDSellCars1.db") as conn:
                     cursor = conn.cursor()
+                    # En el cursos, ponemos {tabla}, para insertar los datos en la tabla necesaria, y asi podemos
+                    # ahorrar algo de código
                     cursor.execute("""
                         UPDATE VO SET matriculaVO = ?, numeroExpediente = ?, marca = ?, modelo = ?, version = ?,
                             chasis = ?, anomatriculacion = ?, FechaCompletaMatriculacion = ?, AntiguedadVO = ?, kilometros = ?, CC = ?, CV = ?,
@@ -1104,20 +1191,22 @@ class VO:
                             DistintivoAmbiental = ?, FechaSalidaVO = ?, FechaTransferenciaCompleta = ?, FechaITVhasta = ?, cifExpropietario = ?,
                             FechaReservaVO = ?, rutaImagen = ?
                         WHERE matriculaVO = ?;
-                    """, (*valores, matriculaVO))  # Incluyendo la ruta de la imagen
-                    conn.commit()
+                    """, (*valores, matriculaVO)) # Se pasan los valores y el ID anterior como condición
+                    conn.commit()  # Guarda los cambios
 
+                # Refresca la interfaz después de actualizar y cierra la ventana de modificación
                 VO.clear_search(frame_right, clear_frame_right, app)
                 VO.ventana_abierta = False
                 appModify.destroy()
 
+        # Manejo de errores comunes
             except sqlite3.IntegrityError as e:
                 messagebox.showerror("Error", f"Ya existe un VO con la misma matrícula: '{matricula}' o el mismo Nº de Expediente: '{numexp}'", parent=appModify)
 
             except sqlite3.OperationalError as e:
                 messagebox.showerror("Error de Base de Datos", f"Ocurrió un error al guardar los cambios:\n{e}")
 
-
+        # Metodo para cerrar la ventana
         def on_closing():
             VO.ventana_abierta = False
             VO.ventanas_secundarias.remove(appModify)
@@ -1127,21 +1216,21 @@ class VO:
         appModify.bind("<Return>", lambda event: guardar_cambios(matriculaVO))
         appModify.mainloop()
 
-
-
+    # Metodo para selección de un vehículo de la tabla
     @staticmethod
     def on_item_selected(tree):
         selected_item = tree.selection()
         if selected_item:
             VO.selected_VO = tree.item(selected_item, "values")[0]
     
-
+    # Metodo para borrar vehículo
     @staticmethod
     def delete_VO(selected_VO, frame_right, clear_frame_right, app):
         if not selected_VO:
             messagebox.showwarning("Aviso", "Selecciona un VO para borrar.")
             return
 
+        # Ventana de aviso de elimincaión con pregunta de continuar o cancelar (si, no)
         respuesta = messagebox.askyesno(
             "Confirmar eliminación",
             f"¿Estás seguro de que deseas borrar al VO con Matricula: {selected_VO}?"
@@ -1191,7 +1280,6 @@ class VO:
                     VO.query_params
                 )
             else:
-                # Búsqueda simple
                 cursor.execute(
                     f"SELECT {columnas_sql} FROM VO WHERE {VO.search_column} LIKE ?",
                     (f"{VO.query}%",)
@@ -1204,8 +1292,11 @@ class VO:
         conn.close()
         return datos
 
+
     @staticmethod
     def generate_inform(app):
+
+        # Evita abrir múltiples ventanas al mismo tiempo
         if VO.ventana_abierta:
             messagebox.showerror(
                 "Ventana ya abierta",
@@ -1214,11 +1305,13 @@ class VO:
             )
             return
 
-        VO.ventana_abierta = True
+        VO.ventana_abierta = True  # Marca la ventana como abierta
 
+        # Función para la creacion y guardado del pdf en su carpeta correspondiente
         def confirmar_guardado(event=None):
-            nombre_archivo = entrada_nombre.get().strip()
+            nombre_archivo = entrada_nombre.get().strip()  # Obtiene el nombre del informe ingresado
 
+            # Validaciones
             if not nombre_archivo:
                 messagebox.showerror("Error", "Debes introducir un nombre para el informe.", parent=ventana_nombre)
                 return
@@ -1231,39 +1324,54 @@ class VO:
                 messagebox.showerror("Error", "Solo puedes seleccionar una opción.", parent=ventana_nombre)
                 return
 
+            # Añade extensión .pdf si no se incluyó
             if not nombre_archivo.endswith(".pdf"):
                 nombre_archivo += ".pdf"
 
-            ruta = os.path.join("informes", "Vehiculos", nombre_archivo)
-            os.makedirs(os.path.dirname(ruta), exist_ok=True)
+            ruta = os.path.join("informes", "Vehiculos", nombre_archivo)  # Ruta final del informe
+            os.makedirs(os.path.dirname(ruta), exist_ok=True)  # Crea la carpeta si no existe
 
             try:
                 if check_predefinido.get():
+                    # Columnas fijas para el informe predefinido
                     columnas_fijas = [
                         "matriculaVO", "marca", "modelo", "version", "chasis",
                         "kilometros", "CV", "colorExterno", "DistintivoAmbiental",
                         "TipoCombustible", "PrecioVentaVO"
                     ]
                     columnas_sql = ", ".join(columnas_fijas)
+
+                    # Obtiene los datos filtrados en función de esas columnas
                     datos = VO.obtener_datos_filtrados(columnas_sql)
+
+                    # Divide los datos en páginas
                     paginas = [datos[i:i + VO.rows_per_page] for i in range(0, len(datos), VO.rows_per_page)]
+
+                    # Genera el informe PDF predefinido
                     VO.generar_informe_pdf_fijo(paginas, ruta)
                 elif check_grafico.get():
                     VO.generar_grafico_pdf(ruta)
 
 
                 elif check_personalizado.get():
+                    # Columnas seleccionadas por el usuario
                     columnas_visibles = VO.visible_columns
                     columnas_sql = ", ".join(columnas_visibles)
+
+                    # Traducción de los nombres de columnas a nombres legibles
                     columnas_texto = [VO.column_name_map[col] for col in columnas_visibles]
+
+                    # Obtiene los datos y los divide en páginas
                     datos = VO.obtener_datos_filtrados(columnas_sql)
                     paginas = [datos[i:i + VO.rows_per_page] for i in range(0, len(datos), VO.rows_per_page)]
+
+                    # Genera el informe PDF personalizado
                     VO.generar_informe_pdf(paginas, columnas_texto, ruta)
                 
-
                 cerrar_ventana()
                 messagebox.showinfo("Éxito", f"Informe generado como:\n{ruta}", parent=app)
 
+                # Abre el archivo generado con la aplicación predeterminada
                 import platform
                 if platform.system() == "Windows":
                     os.startfile(ruta)
@@ -1273,13 +1381,16 @@ class VO:
                     os.system(f"xdg-open '{ruta}'")
 
             except Exception as e:
+                # Muestra mensaje de error en caso de excepción
                 messagebox.showerror("Error", f"No se pudo generar el informe.\n\n{e}", parent=app)
                 cerrar_ventana()
 
+        # Cierra la ventana y libera el bloqueo
         def cerrar_ventana():
             VO.ventana_abierta = False
             ventana_nombre.destroy()
 
+        # Lógica para seleccionar solo una opción de tipo de informe
         def toggle_check(tipo):
             if tipo == "predef":
                 if check_predefinido.get():
@@ -1294,7 +1405,7 @@ class VO:
                     check_predefinido.deselect()
                     check_personalizado.deselect()
 
-
+        # Escalado de la ventana según resolución de pantalla
         screen_w = app.winfo_screenwidth()
         screen_h = app.winfo_screenheight()
         ref_w, ref_h = 1920, 1080
@@ -1310,6 +1421,7 @@ class VO:
         x_pos = int((screen_w - ancho_ventana) / 2)
         y_pos = int((screen_h - alto_ventana) / 2)
 
+        # Crea la ventana secundaria
         ventana_nombre = ctk.CTk()
         VO.ventanas_secundarias.append(ventana_nombre)
 
@@ -1319,9 +1431,9 @@ class VO:
         ventana_nombre.geometry(f"{ancho_ventana}x{alto_ventana}+{x_pos}+{y_pos}")
         ventana_nombre.resizable(False, False)
 
+        # Icono
         icon_path = "resources/images/oldIcon.ico"
         if sys.platform == "win32":
-            import ctypes
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             try:
@@ -1329,18 +1441,23 @@ class VO:
             except Exception as e:
                 print(f"No se pudo cargar el icono: {e}")
 
+        # Asocia el cierre de la ventana al método `cerrar_ventana`
         ventana_nombre.protocol("WM_DELETE_WINDOW", cerrar_ventana)
 
+        # Fuentes personalizadas
         fuente_titulo = ctk.CTkFont(family="Sans Sulex", size=fuente_titulo_size)
         fuente_label = ctk.CTkFont(family="Sans Sulex", size=fuente_label_size)
         fuente_boton = ctk.CTkFont(family="Sans Sulex", size=fuente_boton_size)
 
+        # Frame principal con fondo oscuro
         frame_principal = ctk.CTkFrame(ventana_nombre, fg_color="#373737", corner_radius=0)
         frame_principal.pack(fill="both", expand=True, padx=int(20 * escala_w), pady=int(20 * escala_h))
 
+        # Título de la ventana
         label_titulo = ctk.CTkLabel(frame_principal, text="Informe de Vehículos", font=fuente_titulo, text_color="white")
         label_titulo.pack(pady=(int(10 * escala_h), int(10 * escala_h)))
 
+        # Entrada de texto para el nombre del archivo
         entrada_nombre = ctk.CTkEntry(
             frame_principal,
             placeholder_text="Introduce nombre del informe",
@@ -1364,7 +1481,7 @@ class VO:
             hover_color="#540303",
             command=lambda: toggle_check("predef")
         )
-        check_predefinido.pack(anchor="w", pady=(0, int(7 * escala_h)))
+        check_predefinido.pack(anchor="w", pady=(0, int(5 * escala_h)))
 
         check_personalizado = ctk.CTkCheckBox(
             frame_checks,
@@ -1375,7 +1492,7 @@ class VO:
             hover_color="#540303",
             command=lambda: toggle_check("personal")
         )
-        check_personalizado.pack(anchor="w", pady=(0, int(7 * escala_h)))
+        check_personalizado.pack(anchor="w")
 
         check_grafico = ctk.CTkCheckBox(
             frame_checks,
@@ -1402,20 +1519,27 @@ class VO:
         )
         boton_guardar.pack(pady=(int(15 * escala_h), int(5 * escala_h)))
 
+        # Permite usar la tecla Enter para guardar
         ventana_nombre.bind("<Return>", confirmar_guardado)
+
+        # Inicia el bucle principal de la ventana
         ventana_nombre.mainloop()
 
 
     @staticmethod
     def sell_inform(app):
 
+        # Validación: verificar si hay un VO (vehículo de ocasión) seleccionado
         if VO.selected_VO is None:
             messagebox.showerror("Error", "No hay coche seleccionado. No se puede generar la ficha de venta.", parent=app)
             return
 
+        # Obtener matrícula del vehículo seleccionado
         matricula = VO.selected_VO
+        # Definir ruta del PDF que se generará
         ruta_pdf = os.path.abspath(f"informes/fichas/ficha_{matricula}.pdf")
 
+        # Si el archivo PDF ya existe, preguntar al usuario si desea sobrescribirlo
         if os.path.exists(ruta_pdf):
             respuesta = messagebox.askyesno(
                 "Ficha ya existente",
@@ -1423,12 +1547,14 @@ class VO:
                 parent=app
             )
             if not respuesta:
+                # Si el usuario no desea sobrescribir, se intenta abrir el archivo existente
                 try:
                     os.startfile(ruta_pdf)
                 except Exception as e:
                     messagebox.showwarning("Advertencia", f"No se pudo abrir el PDF existente:\n{e}", parent=app)
                 return
 
+        # Conexión a la base de datos para recuperar datos del vehículo
         conn = sqlite3.connect("bd/BDSellCars1.db")
         cursor = conn.cursor()
         cursor.execute("""
@@ -1439,18 +1565,26 @@ class VO:
         row = cursor.fetchone()
         conn.close()
 
+        # Validar que se encontraron resultados
         if not row:
             messagebox.showerror("Error", f"No se encontró el vehículo con matrícula {matricula}", parent=app)
             return
 
+        # Desempaquetar los datos obtenidos
         (matricula, expediente, marca, modelo, version, cv, cc, km, precio, distintivo, ruta_imagen) = row
+
+        # Usar imagen por defecto si no hay imagen o la ruta no existe
         ruta_imagen = ruta_imagen if ruta_imagen and os.path.exists(ruta_imagen) else "imagenesCoches/noImage.jpg"
+
+        # Crear carpeta de destino si no existe
         os.makedirs(os.path.dirname(ruta_pdf), exist_ok=True)
 
         try:
+            # Registrar fuente personalizada para el PDF
             font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
             pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
 
+            # Crear lienzo del PDF con tamaño A4
             c = canvas.Canvas(ruta_pdf, pagesize=A4)
             width, height = A4
             margin = 2 * cm
@@ -1465,7 +1599,7 @@ class VO:
             c.rect(margin, height - margin - matricula_box_height, width - 2 * margin, matricula_box_height, stroke=1, fill=0)
             c.drawCentredString(width / 2, height - margin - 0.9 * cm, f"Matrícula: {matricula}")
 
-            # Imagen respetando proporciones
+            # Intentar cargar y dibujar la imagen del vehículo manteniendo proporciones
             try:
                 imagen = ImageReader(ruta_imagen)
                 img_max_width = width - 4 * cm
@@ -1496,6 +1630,7 @@ class VO:
                     preserveAspectRatio=True
                 )
             except Exception as e:
+                # Si no se pudo cargar la imagen, se continúa sin ella
                 print(f"No se pudo cargar la imagen: {e}")
                 y_image = height - margin - matricula_box_height - 0.5 * cm
 
@@ -1504,6 +1639,7 @@ class VO:
             spacing = 1.05 * cm
             c.setFont("Sans Sulex", 12)
 
+            # Lista de datos del vehículo que se mostrarán en el PDF
             datos = [
                 f"Expediente: {expediente or '-'}",
                 f"Marca: {marca or '-'}",
@@ -1516,30 +1652,35 @@ class VO:
                 f"Precio: {precio or '-'} €",
             ]
 
+            # Escribir cada dato en el PDF
             for dato in datos:
-                if y_pos < 2.5 * cm:
+                if y_pos < 2.5 * cm: # Si no hay suficiente espacio, crear nueva página
                     c.showPage()
                     y_pos = height - margin
                     c.setFont("Sans Sulex", 12)
                 c.drawString(margin, y_pos, dato)
                 y_pos -= spacing
 
-            # Pie de página con fecha
+            # Agregar fecha de generación al pie del documento
             fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
             c.setFont("Sans Sulex", 9)
             c.drawRightString(width - margin, 1.5 * cm, f"Generado el {fecha}")
 
+            # Guardar el archivo PDF
             c.save()
+
+            # Intentar abrir el archivo PDF generado
             os.startfile(ruta_pdf)
 
         except Exception as e:
+            # Capturar errores y mostrar mensaje al usuario
             messagebox.showerror("Error al generar o abrir PDF", f"Ocurrió un error:\n{e}", parent=app)
 
 
 
     @staticmethod
     def generar_informe_pdf_fijo(paginas, ruta_salida="informe_VO.pdf"):
-
+        # Columnas base y nombres legibles para el encabezado
         columnas = [
             "Matrícula",
             "Marca",
@@ -1551,6 +1692,7 @@ class VO:
             "Color"
         ]
 
+        # Peso proporcional de cada columna (determina el ancho relativo)
         pesos = {
             "Matrícula": 0.8,
             "Marca": 1,
@@ -1562,13 +1704,15 @@ class VO:
             "Color": 1
         }
 
+        # Registrar fuente personalizada
         font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
 
+        # Crear objeto PDF en orientación horizontal
         c = canvas.Canvas(ruta_salida, pagesize=landscape(A4))
         width, height = landscape(A4)
-
         logo_path = "resources/logos/hgcnegro.png"
+        # Configuraciones de márgenes y proporción
         total_padding = 2 * cm
 
         peso_total = sum(pesos.values())
@@ -1652,104 +1796,6 @@ class VO:
             c.showPage()
 
         c.save()
-
-    # Genera un informe PDF en formato horizontal con los datos proporcionados en múltiples páginas.
-    # Cada página incluye un logo, título, encabezado de columnas y filas con datos, además de pie 
-    # de página con la fecha y número de página.
-
-    @staticmethod
-    def generar_informe_pdf(paginas, columnas, ruta_salida="informe_facturas_personalizado.pdf"):
-
-        # Registrar la fuente personalizada desde el archivo .ttf
-        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
-        pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
-
-        # Crear el canvas del PDF en orientación horizontal
-        c = canvas.Canvas(ruta_salida, pagesize=landscape(A4))
-        width, height = landscape(A4)
-
-        # Ruta del logo y margen izquierdo
-        logo_path = "resources/logos/hgcnegro.png"
-        x = 1 * cm  # margen izquierdo
-        total_padding = 2 * cm  # márgenes izquierdo y derecho combinados
-
-        # Cálculo del ancho de cada columna
-        num_columnas = len(columnas)
-        peso_columna = (width - total_padding) / num_columnas
-
-        # Configuración de estilo
-        font_size = 9
-        altura_fila = 0.75 * cm
-        altura_encabezado = 1.0 * cm
-        max_chars_per_line = 30 
-        total_paginas = len(paginas)
-
-        # Iterar por cada página de datos
-        for num_pagina, datos_pagina in enumerate(paginas, start=1):
-            y = height - 1 * cm
-
-            # Mover logo a la derecha
-            try:
-                logo = ImageReader(logo_path)
-                orig_width, orig_height = logo.getSize()
-                logo_width = 4 * cm
-                logo_height = (orig_height / orig_width) * logo_width
-                c.drawImage(logo, width - logo_width - x, y - logo_height + 0.5 * cm, width=logo_width, height=logo_height, mask='auto')
-            except:
-                pass  # Si el logo no se encuentra o da error, se omite
-
-            y -= 1.4 * cm
-
-            # Título a la izquierda
-            c.setFont("Sans Sulex", 14)
-            c.setFillColor(colors.black)
-            c.drawString(x, y, "LISTADO DE FACTURAS")
-
-            y -= 1.4 * cm
-
-            # Encabezados
-            c.setFillColorRGB(0.27, 0.27, 0.27)
-            c.rect(x - 0.1 * cm, y - 0.1 * cm, width - total_padding + 0.2 * cm, altura_encabezado, fill=True, stroke=False)
-            c.setFillColor(colors.white)
-            c.setFont("Sans Sulex", font_size + 1)
-
-            col_x = x
-            for col in columnas:
-                nombre_col = str(col)[:max_chars_per_line]
-                c.drawString(col_x, y + altura_encabezado / 2 - font_size / 2.5, nombre_col)
-                col_x += peso_columna
-
-            y -= altura_encabezado  # bajar para dibujar las filas
-            c.setFont("Sans Sulex", font_size)
-
-            # Dibujar filas de datos
-            for fila in datos_pagina:
-                c.setFillColor(colors.whitesmoke if datos_pagina.index(fila) % 2 == 0 else colors.lightgrey)
-                c.rect(x - 0.1 * cm, y - 0.1 * cm, width - total_padding + 0.2 * cm, altura_fila, fill=True, stroke=False)
-                c.setFillColor(colors.black)
-
-                col_x = x
-                for idx, item in enumerate(fila):
-                    texto = str(item) if item is not None else ""
-                    max_chars = int((peso_columna / cm) * 5.5)
-                    lineas = wrap(texto, width=max_chars)[:2]
-                    for j, linea in enumerate(lineas):
-                        c.drawString(col_x, y + altura_fila / 2 - j * (font_size + 1.5), linea)
-                    col_x += peso_columna
-
-                y -= altura_fila
-
-            # Pie de página con fecha actual y número de página
-            fecha_actual = format_datetime(datetime.now(), "EEEE, d 'de' MMMM 'de' y, HH:mm", locale="es")
-            c.setFont("Sans Sulex", 9)
-            c.setFillColor(colors.black)
-            c.drawString(x, 0.4 * cm, f"Fecha de creación: {fecha_actual}")
-            c.drawRightString(width - x, 0.4 * cm, f"Página {num_pagina} de {total_paginas}")
-
-            c.showPage()
-
-        c.save() # Guardar todo el progreso
-
 
     @staticmethod
     def generar_grafico_pdf(ruta):
@@ -1877,7 +1923,7 @@ class VO:
         VO.ventanas_secundarias.append(app_sp)
         
         if sys.platform == "win32":
-            import ctypes
+
             myappid = "mycompany.myapp.sellcars.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             app_sp.iconbitmap(VO.icon_path)
@@ -1967,13 +2013,16 @@ class VO:
             [("Situacion", ctk.CTkOptionMenu, opciones_situacion), ("Tipo Combustible", ctk.CTkOptionMenu, opciones_tipo_combustible),("Tipo VO", ctk.CTkOptionMenu, opciones_tipo_vo), ("Distintivo Ambiental", ctk.CTkOptionMenu, opciones_distintivo_ambiental),]
         ]
 
+        # Lo que el usuario ve como clave, lo que se usará en SQL como valor
         operadores_fecha = {"=": "=", "<": "<=", ">": ">="}
-        condiciones_fecha = {}
-        condiciones_num = {}
+
+        condiciones_fecha = {}  # Guarda el operador seleccionado para fechas
+        condiciones_num = {}    # Guarda el operador seleccionado para números
 
         especiales_frame = ctk.CTkFrame(contenido_frame, fg_color="transparent")
         especiales_frame.pack(pady=int(window_height * 0.01))
 
+        # Bucle para la colocación de los entrys, pero solo para campos especiales
         for fila in bloques_especiales:
             fila_frame = ctk.CTkFrame(especiales_frame, fg_color="transparent")
             fila_frame.pack(pady=int(window_height * 0.01))
@@ -2064,9 +2113,10 @@ class VO:
 
                 entradas[texto] = campo
 
+        # Función que realiza la búsqueda al pulsar el botón
         def buscar():
-            import sqlite3
 
+            # Recoge y limpia los datos introducidos por el usuario
             datos = {k: v.get().strip() for k, v in entradas.items()}
             print("Datos recogidos:", datos)
 
@@ -2076,9 +2126,10 @@ class VO:
                 conn = sqlite3.connect(db_path)
                 cursor = conn.cursor()
 
-                condiciones = []
-                valores = []
+                condiciones = []  # Lista de condiciones SQL
+                valores = []      # Valores correspondientes para los placeholders
 
+                # Mapeo de nombres de campo en la interfaz a nombres reales en la base de datos
                 campos_db = {
                     "Matricula": "matriculaVO",
                     "Nº Expediente": "numeroExpediente",
@@ -2115,13 +2166,14 @@ class VO:
                     "Fecha Reserva": "FechaReservaVO"
                 }
 
-
+                # Construcción de condiciones dinámicas en función del tipo de campo
                 for campo_ui, valor in datos.items():
                     if valor:
                         if campo_ui in condiciones_fecha:
                             operador_ui = condiciones_fecha[campo_ui].get()  # =, < o >
                             operador_sql = operadores_fecha.get(operador_ui, "=")  # =, <=, >=
 
+                            # Transformación del formato de fechas
                             try:
                                 fecha_obj = datetime.strptime(valor, "%d/%m/%Y")
                                 valor_sql = fecha_obj.strftime("%Y-%m-%d")
@@ -2144,8 +2196,10 @@ class VO:
                             condiciones.append(f"{campos_db[campo_ui]} LIKE ?")
                             valores.append(f"{valor}%")
 
+                # Generación de sentencia WHERE
                 where_clause = " AND ".join(condiciones) if condiciones else "1"
 
+                # Paginación
                 VO.current_page = 1
                 cursor.execute(f"SELECT COUNT(*) FROM VO WHERE {where_clause}", valores)
                 total_rows = cursor.fetchone()[0]
@@ -2159,9 +2213,11 @@ class VO:
                     conn.close()
                     return
 
+                # Calcular número total de páginas
                 total_pages = max((total_rows // VO.rows_per_page) + (1 if total_rows % VO.rows_per_page > 0 else 0), 1)
                 offset = (VO.current_page - 1) * VO.rows_per_page
 
+                # Consulta principal con paginación
                 cursor.execute(
                     f"SELECT * FROM VO WHERE {where_clause} LIMIT ? OFFSET ?",
                     valores + [VO.rows_per_page, offset]
@@ -2170,6 +2226,7 @@ class VO:
 
                 conn.close()
 
+                # Lógica para almacenar el estado del filtro y crear la tabla en la interfaz
                 VO.Filtro = bool(condiciones)
                 VO.query = where_clause
                 VO.query_params = valores
@@ -2196,6 +2253,7 @@ class VO:
             except sqlite3.Error as e:
                 print("Error al buscar VO:", e)
 
+        # Botón de búsqueda en la interfaz gráfica
         boton_buscar = ctk.CTkButton(
             main_frame,
             text="Buscar",
@@ -2208,28 +2266,35 @@ class VO:
             height=int(window_height * 0.065),
             command=buscar
         )
-        
+        # Función para manejar el cierre de la ventana secundaria
         def on_closing():
             VO.ventana_abierta = False
             VO.ventanas_secundarias.remove(app_sp)
             app_sp.destroy()
 
         boton_buscar.pack(pady=int(window_height * 0.03))
+        # Asignación de eventos de cierre y Enter
         app_sp.protocol("WM_DELETE_WINDOW", on_closing)
         app_sp.bind("<Return>", lambda event: buscar())
 
+        # Iniciar la ventana secundaria
         app_sp.mainloop()
 
-    
+# Funciones para ordenar las columnas de la tabla--------------------------------------------------------------------
     @staticmethod
     def sort_by_column(column, frame_right, clear_frame_right, app):
+        # Si ya se está ordenando por esta columna, se cambia el orden (ascendente <-> descendente)
         if VO.sort_column == column:
             VO.sort_ascending = not VO.sort_ascending
+        # Si es una columna nueva, se establece como columna actual de ordenación y en orden ascendente
         else:
             VO.sort_column = column
             VO.sort_ascending = True
 
+        # Se resetea la página actual a la primera (importante para paginación)
         VO.current_page = 1
+
+        # Se recargan los datos con la nueva ordenación
         VO.load_data(frame_right, clear_frame_right, app)
 
     @staticmethod
@@ -2239,8 +2304,10 @@ class VO:
             if col != column:
                 VO.sort_states[col] = None
 
+        # Obtiene el estado actual de la columna seleccionada (puede ser 'asc', 'desc' o None)
         current = VO.sort_states.get(column)
 
+        # Ciclo de estados: asc -> desc -> None -> asc ...
         if current == "asc":
             VO.sort_states[column] = "desc"
         elif current == "desc":
@@ -2248,7 +2315,7 @@ class VO:
         else:
             VO.sort_states[column] = "asc"
 
-        # Actualizar columna y orden actuales
+        # Actualiza la columna y el orden actuales según el nuevo estado
         VO.sort_column = column if VO.sort_states[column] else None
         VO.sort_order = VO.sort_states[column] or ""
 
@@ -2256,11 +2323,13 @@ class VO:
 
     @staticmethod
     def refresh_treeview_headings(tree, frame_right, clear_frame_right, app):
+        # Actualiza los encabezados del Treeview para reflejar el estado de ordenación actual
 
         for col in VO.visible_columns:
-            sort_state = VO.sort_states.get(col)
-            base_text = VO.column_name_map.get(col, col)
+            sort_state = VO.sort_states.get(col) # estado actual de orden de esa columna
+            base_text = VO.column_name_map.get(col, col)  # nombre legible de la columna
 
+            # Añade un símbolo al encabezado según el estado de orden (▲ para asc, ▼ para desc)
             if sort_state == "asc":
                 heading_text = f"{base_text} ▲"
             elif sort_state == "desc":
@@ -2268,7 +2337,7 @@ class VO:
             else:
                 heading_text = base_text
 
-            # Vuelve a aplicar heading y command
+            # Asigna nuevamente el encabezado al Treeview y enlaza el evento de clic
             tree.heading(
                 col,
                 text=heading_text,
@@ -2279,8 +2348,14 @@ class VO:
 
     @staticmethod
     def sort_column_click(col, tree, frame_right, clear_frame_right, app):
+        # Al hacer clic en un encabezado de columna:
+        # Se actualiza el estado de orden (asc, desc, o ninguno)
         VO.update_sort_state(col)
-        VO.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)
+
+        # Se refrescan los encabezados para mostrar los símbolos de orden correctamente
+        VO.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)  #
+
+        # Se recargan los datos con la nueva ordenación aplicada
         VO.load_data(frame_right, clear_frame_right, app)
 
 

@@ -306,7 +306,7 @@ def cerrar_sesion():
 
 # Metodo para ejecutar el login
 def iniciar_login():
-    os.system("python scripts/login.py")
+    os.system("python login.py")
 
 # Proporciones relativas para el tamaño del botón
 button_width = int(window_width * 0.06)
