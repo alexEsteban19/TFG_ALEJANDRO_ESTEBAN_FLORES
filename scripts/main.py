@@ -1,6 +1,7 @@
 from PIL import Image, ImageTk, ImageDraw
 import customtkinter as ctk
 from tkinter import messagebox, filedialog
+import argparse  
 import screeninfo
 import os
 import sys
@@ -15,18 +16,25 @@ from scripts.FunAcreedor import Acreedor
 from scripts.configuracion import Configuracion
 from scripts.admin_usuarios import AdminUsuarios
 from scripts.Facturacion import Facturacion
-
 active_button = None
 perfil_window = None
 carpeta_proceso = None
 
 def menu(user_data): 
 
-    # Acceder al tipo de usuario que proviene del login
-    User_Type = user_data.get("User_Type", "Usuario Desconocido")       
+    # Acceder a los datos del usuario que provienen del login
+    UserName = user_data.get("UserName", "")
+    Password = user_data.get("Password", "")
+    Nombre = user_data.get("Nombre", "")
+    Apellido1 = user_data.get("Apellido1", "")
+    Apellido2 = user_data.get("Apellido2", "")
+    User_Type = user_data.get("User_Type", "Usuario Desconocido")
+    rutaImagen = user_data.get("rutaImagen", "")
 
     # Guardar el tipo de usuario para después conceder permisos
     user_type = User_Type
+
+    perfil_frame = None 
 
     #------------------------ Creamos la ventana principal ----------------------
     ctk.set_appearance_mode("dark")
@@ -46,6 +54,8 @@ def menu(user_data):
     # Obtener el monitor principal para obtener sus dimensiones
     monitors = screeninfo.get_monitors()
     main_monitor = next((m for m in monitors if m.is_primary), monitors[0])
+    main_monitor_ancho = main_monitor.width
+    main_monitor_alto = main_monitor.height
 
     # Cargar la imagen de fondo
     frame_bg = Image.open(ruta_recurso("resources/images/bg.png")).resize((main_monitor.width, main_monitor.height))
@@ -323,8 +333,6 @@ def menu(user_data):
     folder_img = folder_img.resize((int(button_width * 0.65), int(button_height * 0.65)), Image.Resampling.LANCZOS)
     folder_img = ImageTk.PhotoImage(folder_img)
 
-    # Variable global para manejar el estado de la ventana abierta de las carpetas
-    carpeta_proceso = None
 
     # Metodo para acceder a la carpeta de informes
     def abrir_carpeta_informes():

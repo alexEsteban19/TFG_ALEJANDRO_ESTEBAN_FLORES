@@ -41,6 +41,8 @@ from matplotlib import font_manager
 
 class VO:
     
+
+    
     def ruta_recurso(relativa):
         """Devuelve la ruta absoluta a un recurso, adaptada para PyInstaller."""
         if hasattr(sys, '_MEIPASS'):
