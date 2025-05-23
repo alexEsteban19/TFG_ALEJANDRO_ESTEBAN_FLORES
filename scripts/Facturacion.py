@@ -1,10 +1,8 @@
 import sqlite3
-from tkinter import ttk, StringVar, messagebox
+from tkinter import ttk, messagebox
 import customtkinter as ctk
 from PIL import Image
 import screeninfo
-import scripts.admin_usuarios as adminUsers
-from tkcalendar import DateEntry
 import os
 import sys
 from datetime import datetime
@@ -24,7 +22,12 @@ import platform
 
 
 class Facturacion:
-    
+    @staticmethod
+    def ruta_recurso(relativa):
+        """Devuelve la ruta absoluta a un recurso, adaptada para PyInstaller."""
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relativa)
+        return os.path.join(os.path.abspath("."), relativa)
     # Definimos variables base
     highlight_color = "#c91706"  # Color cuando se selecciona (borde)
     default_border_color = "#565b5e"  # Color del borde por defecto
@@ -39,7 +42,7 @@ class Facturacion:
     selected_Factura = None  # Mantener el cliente seleccionado como variable estática
     query_params = ""
     ventana_abierta = False  
-    icon_path = "resources/logos/icon_logo.ico"
+    icon_path = ruta_recurso("resources/logos/icon_logo.ico")
     ventanas_secundarias = [] 
     
     sort_column = None
@@ -121,7 +124,7 @@ class Facturacion:
         spacer.pack(side="left", expand=True)
 
         # Creación del botón de informes
-        informe_image = Image.open("resources/icons/white/votacion.png").resize(icon_size)
+        informe_image = Image.open(Facturacion.ruta_recurso("resources/icons/white/votacion.png")).resize(icon_size)
         informe_image = ctk.CTkImage(light_image=informe_image)
         informe_btn = ctk.CTkButton(search_frame, text="Generar Informe", image=informe_image, fg_color=btn_color,
                                 font=("Sans Sulex", int(rel_size)),
@@ -130,7 +133,7 @@ class Facturacion:
         informe_btn.pack(side="left", padx=rel_size // 2, pady=int(rel_size // 1.8))
 
         #Creación del botón de busqueda
-        search_plus_image = Image.open("resources/icons/white/search.png").resize(icon_size)
+        search_plus_image = Image.open(Facturacion.ruta_recurso("resources/icons/white/search.png")).resize(icon_size)
         search_plus_image = ctk.CTkImage(light_image=search_plus_image)
         search_plus_button = ctk.CTkButton(search_frame, text="", image=search_plus_image, fg_color=btn_color,
                                     hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -173,7 +176,7 @@ class Facturacion:
         Facturacion.option_menu_tablas.pack(padx=int(rel_size // 7), pady=int(rel_size // 7))
 
         #Creación del botón de refrescar
-        refresh_image = Image.open("resources/icons/white/refresh.png").resize(icon_size)
+        refresh_image = Image.open(Facturacion.ruta_recurso("resources/icons/white/refresh.png")).resize(icon_size)
         refresh_image = ctk.CTkImage(light_image=refresh_image)
         clear_search_button = ctk.CTkButton(search_frame, text="", image=refresh_image, fg_color=btn_color,
                                             hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -254,7 +257,7 @@ class Facturacion:
             Facturacion.abrir_Factu(frame_right, clear_frame_right, app, mantener_filtro=True)
 
         # Botón para abrir el filtro
-        filter_image = Image.open("resources/icons/white/ojoblanco.png").resize(icon_size)
+        filter_image = Image.open(Facturacion.ruta_recurso("resources/icons/white/ojoblanco.png")).resize(icon_size)
         filter_image = ctk.CTkImage(light_image=filter_image)
         filter_button = ctk.CTkButton(search_frame, text="", image=filter_image, fg_color=btn_color,
                                     hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -274,7 +277,7 @@ class Facturacion:
         nav_frame.pack(side="top", fill="x", padx=int(rel_size // 3), pady=int(rel_size // 3))
 
         # Botón para ir a la página anterior
-        prev_image = Image.open("resources/icons/white/angle-small-left.png").resize(icon_size)
+        prev_image = Image.open(Facturacion.ruta_recurso("resources/icons/white/angle-small-left.png")).resize(icon_size)
         prev_image = ctk.CTkImage(light_image=prev_image)
         prev_btn = ctk.CTkButton(nav_frame, text="", image=prev_image, fg_color=btn_color,
                                 height=rel_size, width=rel_size,
@@ -291,7 +294,7 @@ class Facturacion:
         page_label.pack(side="left")
 
         # Botón para ir a la página siguiente
-        next_image = Image.open("resources/icons/white/angle-small-right.png").resize(icon_size)
+        next_image = Image.open(Facturacion.ruta_recurso("resources/icons/white/angle-small-right.png")).resize(icon_size)
         next_image = ctk.CTkImage(light_image=next_image)
         next_btn = ctk.CTkButton(nav_frame, text="", image=next_image, fg_color=btn_color,
                                 height=rel_size, width=rel_size,
@@ -305,7 +308,7 @@ class Facturacion:
         action_frame.pack(side="right", padx=rel_size, pady=rel_size // 1.5)
 
         # Botón para la vista de una factura en particular
-        vistaFactura_image = Image.open("resources/icons/white/facturas.png").resize(icon_size)
+        vistaFactura_image = Image.open(Facturacion.ruta_recurso("resources/icons/white/facturas.png")).resize(icon_size)
         vistaFactura_image = ctk.CTkImage(light_image=vistaFactura_image)
         vistaFactura_btn = ctk.CTkButton(action_frame, text="Ver Factura", image=vistaFactura_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -314,7 +317,7 @@ class Facturacion:
         vistaFactura_btn.pack(side="left", padx=rel_size // 2)
 
         # Botón para la edición de un registro
-        edit_image = Image.open("resources/icons/white/boli.png").resize(icon_size)
+        edit_image = Image.open(Facturacion.ruta_recurso("resources/icons/white/boli.png")).resize(icon_size)
         edit_image = ctk.CTkImage(light_image=edit_image)
         edit_btn = ctk.CTkButton(action_frame, text="Editar Factura", image=edit_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -323,7 +326,7 @@ class Facturacion:
         edit_btn.pack(side="left", padx=rel_size // 2)
 
         # Botón para la eliminación de un registro
-        delete_image = Image.open("resources/icons/white/trash.png").resize(icon_size)
+        delete_image = Image.open(Facturacion.ruta_recurso("resources/icons/white/trash.png")).resize(icon_size)
         delete_image = ctk.CTkImage(light_image=delete_image)
         delete_btn = ctk.CTkButton(action_frame, text="Borrar Factura", image=delete_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -366,7 +369,7 @@ class Facturacion:
                 foreground=[("selected", "white")])    # texto blanco en selección
         
         style.map("Treeview.Heading",
-                background=[("active", "red")])  # Cambia el color que tú quieras
+                background=[("active", "#16466e")])  # Cambia el color que tú quieras
 
 
         # Creación del scrollbar lateral para la tabla
@@ -433,7 +436,7 @@ class Facturacion:
     # Metodo  que nos ayuda a cargar todos los datos que vamos a escribir en la base de datos
     @staticmethod
     def load_data(frame_right, clear_frame_right, app):
-        db_path = "bd/Concesionario.db"
+        db_path = Facturacion.ruta_recurso("bd/Concesionario.db")
         try:
             #Creamos la conexión con la base de datos
             conn = sqlite3.connect(db_path)
@@ -570,9 +573,9 @@ class Facturacion:
         Facturacion.ventana_abierta = True  
 
         # Recolección de todos los datos de la factura seleccionada
-        icon_path = "resources/logos/icon_logo.ico"
+        icon_path = Facturacion.ruta_recurso("resources/logos/icon_logo.ico")
         tabla = Facturacion.tabla_seleccionada
-        conn = sqlite3.connect("bd/Concesionario.db")
+        conn = sqlite3.connect(Facturacion.ruta_recurso("bd/Concesionario.db"))
         cursor = conn.cursor()
         cursor.execute(f"SELECT * FROM {tabla} WHERE IDDocumento = ?", (selected_Factura,))
         factura = cursor.fetchone()
@@ -590,7 +593,7 @@ class Facturacion:
 
         # Asociamos el icono personalizado al proceso para que lo detecte bien
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appModify.iconbitmap(Facturacion.icon_path)
 
@@ -759,7 +762,7 @@ class Facturacion:
 
             # Si todo es válido, hacemos el update
             try:
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(Facturacion.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     # En el cursos, ponemos {tabla}, para insertar los datos en la tabla necesaria, y asi podemos
                     # ahorrar algo de código
@@ -819,7 +822,7 @@ class Facturacion:
         if respuesta:
             try:
                 #Sentencia del borrado del registro por medio de la localización de este por su ID
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(Facturacion.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     cursor.execute(f"DELETE FROM {tabla} WHERE IDDocumento = ?;", (selected_Factura,))
                     conn.commit()
@@ -836,7 +839,7 @@ class Facturacion:
     # 
     @staticmethod
     def obtener_datos_filtrados(columnas_sql):
-        conn = sqlite3.connect("bd/Concesionario.db")
+        conn = sqlite3.connect(Facturacion.ruta_recurso("bd/Concesionario.db"))
         cursor = conn.cursor()
 
         tabla = Facturacion.tabla_seleccionada  #tomamos la tabla seleccionada
@@ -898,9 +901,17 @@ class Facturacion:
                 nombre_archivo += ".pdf"
 
             # Carpeta correspondiente a la tabla seleccionada
-            carpeta = Facturacion.tabla_seleccionada  # Nueva carpeta según tabla
-            ruta = os.path.join("informes", carpeta, nombre_archivo) # Ruta final del informe
-            os.makedirs(os.path.dirname(ruta), exist_ok=True) # Crea la carpeta si no existe
+            carpeta = Facturacion.tabla_seleccionada
+
+            # Ruta base adaptada para PyInstaller o ejecución normal
+            ruta_base = Facturacion.ruta_recurso(os.path.join("informes", carpeta))
+
+            # Asegura que la carpeta existe
+            os.makedirs(ruta_base, exist_ok=True)
+
+            # Ruta final del informe
+            ruta = os.path.join(ruta_base, nombre_archivo)
+
 
             try:
                 if check_predefinido.get():
@@ -993,9 +1004,9 @@ class Facturacion:
         ventana_nombre.resizable(False, False)
 
         # Icono
-        icon_path = "resources/logos/icon_logo.ico"
+        icon_path = Facturacion.ruta_recurso("resources/logos/icon_logo.ico")
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             try:
                 ventana_nombre.iconbitmap(icon_path)
@@ -1103,7 +1114,7 @@ class Facturacion:
         }
 
         # Registrar fuente personalizada
-        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
+        font_path = Facturacion.ruta_recurso("resources/font/sans-sulex/SANSSULEX.ttf")
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
         
         # Crear objeto PDF en orientación horizontal
@@ -1127,7 +1138,7 @@ class Facturacion:
 
             # Mover el logo a la derecha
             try:
-                logo = ImageReader("resources/logos/hgcnegro.png")
+                logo = ImageReader(Facturacion.ruta_recurso("resources/logos/hgcnegro.png"))
                 orig_width, orig_height = logo.getSize()
                 logo_width = 4 * cm
                 logo_height = (orig_height / orig_width) * logo_width
@@ -1197,7 +1208,7 @@ class Facturacion:
     def generar_informe_pdf(paginas, columnas, ruta_salida="informe_facturas_personalizado.pdf"):
 
         # Registrar la fuente personalizada desde el archivo .ttf
-        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
+        font_path = Facturacion.ruta_recurso("resources/font/sans-sulex/SANSSULEX.ttf")
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
 
         # Crear el canvas del PDF en orientación horizontal
@@ -1205,7 +1216,7 @@ class Facturacion:
         width, height = landscape(A4)
 
         # Ruta del logo y margen izquierdo
-        logo_path = "resources/logos/hgcnegro.png"
+        logo_path = Facturacion.ruta_recurso("resources/logos/hgcnegro.png")
         x = 1 * cm  # margen izquierdo
         total_padding = 2 * cm  # márgenes izquierdo y derecho combinados
 
@@ -1296,13 +1307,13 @@ class Facturacion:
 
             # === REGISTRAR FUENTES ===
             try:
-                pdfmetrics.registerFont(TTFont("Sans Sulex", "resources/font/sans-sulex/SANSSULEX.ttf"))
+                pdfmetrics.registerFont(TTFont("Sans Sulex", Facturacion.ruta_recurso("resources/font/sans-sulex/SANSSULEX.ttf")))
             except Exception as e:
                 messagebox.showerror("Error de fuente", f"No se pudo cargar la fuente Sans Sulex.\n{e}")
                 return
 
             # === OBTENER DATOS DE FACTURA ===
-            conn = sqlite3.connect("bd/Concesionario.db")
+            conn = sqlite3.connect(Facturacion.ruta_recurso("bd/Concesionario.db"))
             cursor = conn.cursor()
             tabla = Facturacion.tabla_seleccionada  # Determinar la tabla activa
             cursor.execute(f"SELECT * FROM {tabla} WHERE IDDocumento = ?", (Facturacion.selected_Factura,))
@@ -1324,7 +1335,7 @@ class Facturacion:
                 messagebox.showerror("Error", f"Tabla desconocida: {tabla}")
                 return
 
-            carpeta_destino = os.path.join("facturas", subcarpeta)
+            carpeta_destino = os.path.join(Facturacion.ruta_recurso("facturas"), subcarpeta)
             os.makedirs(carpeta_destino, exist_ok=True)
 
             ruta = os.path.join(carpeta_destino, f"factura_{factura[0]}.pdf")
@@ -1335,7 +1346,7 @@ class Facturacion:
 
             # === LOGO ===
             try:
-                logo_path = "resources/logos/hgcnegro.png"
+                logo_path = Facturacion.ruta_recurso("resources/logos/hgcnegro.png")
                 logo = ImageReader(logo_path)
                 c.drawImage(logo, 2 * cm, height - 3 * cm, width=4 * cm, height=2 * cm, mask='auto')
             except Exception as e:
@@ -1431,7 +1442,7 @@ class Facturacion:
 
         # Establece el icono de la ventana en Windows
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             app_sp.iconbitmap(Facturacion.icon_path)
 
@@ -1440,7 +1451,7 @@ class Facturacion:
         ctk.set_default_color_theme("dark-blue")  # Tema de colores
 
         # Establece el icono de la ventana si existe
-        icon_path = "resources/logos/icon_logo.ico"
+        icon_path = Facturacion.ruta_recurso("resources/logos/icon_logo.ico")
         if icon_path and os.path.exists(icon_path):
             app_sp.iconbitmap(icon_path)
 
@@ -1617,7 +1628,7 @@ class Facturacion:
             datos = {k: v.get().strip() for k, v in entradas.items()}
             print("Datos recogidos:", datos)
 
-            db_path = "bd/Concesionario.db"
+            db_path = Facturacion.ruta_recurso("bd/Concesionario.db")
 
             try:
                 conn = sqlite3.connect(db_path)
@@ -1817,3 +1828,5 @@ class Facturacion:
     
         # Se recargan los datos con la nueva ordenación aplicada
         Facturacion.load_data(frame_right, clear_frame_right, app)
+
+

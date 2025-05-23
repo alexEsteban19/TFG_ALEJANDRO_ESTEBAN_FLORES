@@ -11,13 +11,13 @@ class Login:
         # Creo la ventana del login 
         self.app = ctk.CTk()
         self.app.title("IDENTIFICACIÓN - HGC")
-        self.icon_path = "resources/logos/icon_logo.ico"
+        self.icon_path = Login.ruta_recurso("resources/logos/icon_logo.ico")
         ctk.set_appearance_mode("dark")
 
         # Asociamos el icono personalizado al proceso para que lo detecte bien
         if sys.platform == "win32":
             import ctypes
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             self.app.iconbitmap(self.icon_path)
 
@@ -57,7 +57,7 @@ class Login:
 
         # Logo de la empresa en el login 
         try:
-            img = Image.open("resources/logos/hgcmetal.png")
+            img = Image.open(Login.ruta_recurso("resources/logos/hgcmetal.png"))
             image_width = img.width * 2.2
             aspect_ratio = ((img.height / image_width) * 2)
             image_height = int(logo_width * aspect_ratio)
@@ -84,8 +84,14 @@ class Login:
         self.password_entry = ctk.CTkEntry(self.password_frame, width=entry_width - 60, height=entry_height, show="*", font= self.fuente_custom)
         self.password_entry.pack(side="left", padx=5)
 
-        self.eye_icon = ctk.CTkImage(light_image=Image.open("resources/images/ojotachado.png"), size=(eye_icon_size, eye_icon_size))
-        self.eye_crossed_icon = ctk.CTkImage(light_image=Image.open("resources/images/ojoblanco.png"), size=(eye_icon_size, eye_icon_size))
+        self.eye_icon = ctk.CTkImage(
+            light_image=Image.open(Login.ruta_recurso("resources/images/ojotachado.png")),
+            size=(eye_icon_size, eye_icon_size)
+        )
+        self.eye_crossed_icon = ctk.CTkImage(
+            light_image=Image.open(Login.ruta_recurso("resources/images/ojoblanco.png")),
+            size=(eye_icon_size, eye_icon_size)
+        )
 
         self.is_password_visible = False
 
@@ -175,8 +181,6 @@ class Login:
 
         user_data = self.verificar_usuario(username, password)
         if user_data:
-            messagebox.showinfo("Inicio de Sesión Exitoso", f"Bienvenido a HGC ({user_data['User_Type']})")
-            self.app.destroy()
 
             # Parametros que despues se pasaran al main
             args = [
@@ -189,13 +193,22 @@ class Login:
                 "--rutaImagen", f"\"{user_data.get('rutaImagen', '')}\""
             ]
 
-            os.system(f"python main.py {' '.join(args)}")
+            from scripts.main import menu  # Usa la ruta real según tu estructura
+
+            user_data = self.verificar_usuario(username, password)
+            if user_data:
+                messagebox.showinfo("Inicio de Sesión Exitoso", f"Bienvenido a HGC ({user_data['User_Type']})")
+                self.app.destroy()
+
+                # Llamar directamente a la aplicación principal pasando los datos
+                menu(user_data)
+
         else:
             messagebox.showerror("Error de Inicio de Sesión", "Los datos no coinciden con ningún usuario registrado.")
     # verifica los datos en la BD
     def verificar_usuario(self, username, password):
-        db_path = "bd/Users.sqlite"
-        default_image_path = "imagenesCoches/noImage.jpg"  # Ruta predeterminada
+        db_path = Login.ruta_recurso("bd/Users.sqlite")
+        default_image_path = Login.ruta_recurso("imagenesCoches/noImage.jpg")  # Ruta predeterminada
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
@@ -230,6 +243,13 @@ class Login:
     # Mantener la ventana ejecutandose
     def ejecutar(self):
         self.app.mainloop()
+
+    @staticmethod
+    def ruta_recurso(relativa):
+        """Devuelve la ruta absoluta a un recurso, adaptada para PyInstaller."""
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relativa)
+        return os.path.join(os.path.abspath("."), relativa)
 
 if __name__ == "__main__":
     login_app = Login()

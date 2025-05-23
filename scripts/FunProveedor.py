@@ -1,5 +1,5 @@
 import sqlite3
-from tkinter import ttk, StringVar, messagebox
+from tkinter import ttk, messagebox
 import customtkinter as ctk
 from PIL import Image
 import screeninfo
@@ -21,6 +21,13 @@ import ctypes
 
 class Proveedor:
     
+    @staticmethod
+    def ruta_recurso(relativa):
+        """Devuelve la ruta absoluta a un recurso, adaptada para PyInstaller."""
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relativa)
+        return os.path.join(os.path.abspath("."), relativa)
+
     # Definimos variables base
     current_page = 1
     rows_per_page = 20
@@ -31,7 +38,7 @@ class Proveedor:
     selected_proveedor = None  # Mantener el proveedor seleccionado como variable estática
     query_params = ""
     ventana_abierta = False  
-    icon_path = "resources/logos/icon_logo.ico"
+    icon_path = ruta_recurso("resources/logos/icon_logo.ico")
     ventanas_secundarias = []
 
     sort_column = None
@@ -114,7 +121,7 @@ class Proveedor:
         spacer = ctk.CTkLabel(search_frame, text="")  # Vacío, sirve solo para expandir
         spacer.pack(side="left", expand=True)
 
-        factu_image = Image.open("resources/icons/white/facturas.png").resize(icon_size)
+        factu_image = Image.open(Proveedor.ruta_recurso("resources/icons/white/facturas.png")).resize(icon_size)
         factu_image = ctk.CTkImage(light_image=factu_image)
         factu_btn = ctk.CTkButton(search_frame, text="Crear Factura", image=factu_image, fg_color=btn_color,
                                 font=("Sans Sulex", int(rel_size)),
@@ -122,7 +129,7 @@ class Proveedor:
                                 border_width=2, border_color="white", command=lambda: Proveedor.add_factura(Proveedor.selected_proveedor, frame_right, clear_frame_right, app))
         factu_btn.pack(side="left", padx=rel_size // 2, pady=int(rel_size // 1.8))
 
-        informe_image = Image.open("resources/icons/white/votacion.png").resize(icon_size)
+        informe_image = Image.open(Proveedor.ruta_recurso("resources/icons/white/votacion.png")).resize(icon_size)
         informe_image = ctk.CTkImage(light_image=informe_image)
         informe_btn = ctk.CTkButton(search_frame, text="Generar Informe", image=informe_image, fg_color=btn_color,
                                 font=("Sans Sulex", int(rel_size)),
@@ -130,7 +137,7 @@ class Proveedor:
                                 border_width=2, border_color="white", command=lambda: Proveedor.generate_inform(app))
         informe_btn.pack(side="left", padx=rel_size // 2, pady=int(rel_size // 1.8))
 
-        search_plus_image = Image.open("resources/icons/white/search.png").resize(icon_size)
+        search_plus_image = Image.open(Proveedor.ruta_recurso("resources/icons/white/search.png")).resize(icon_size)
         search_plus_image = ctk.CTkImage(light_image=search_plus_image)
         search_plus_button = ctk.CTkButton(search_frame, text="", image=search_plus_image, fg_color=btn_color,
                                     hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -141,7 +148,7 @@ class Proveedor:
         
         #Busqueda normal
 
-        refresh_image = Image.open("resources/icons/white/refresh.png").resize(icon_size)
+        refresh_image = Image.open(Proveedor.ruta_recurso("resources/icons/white/refresh.png")).resize(icon_size)
         refresh_image = ctk.CTkImage(light_image=refresh_image)
         clear_search_button = ctk.CTkButton(search_frame, text="", image=refresh_image, fg_color=btn_color,
                                             hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -220,7 +227,7 @@ class Proveedor:
             Proveedor.abrir_proveedor(frame_right, clear_frame_right, app, mantener_filtro=True)
             
 
-        filter_image = Image.open("resources/icons/white/ojoblanco.png").resize(icon_size)
+        filter_image = Image.open(Proveedor.ruta_recurso("resources/icons/white/ojoblanco.png")).resize(icon_size)
         filter_image = ctk.CTkImage(light_image=filter_image)
         filter_button = ctk.CTkButton(search_frame, text="", image=filter_image, fg_color=btn_color,
                                     hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -239,7 +246,7 @@ class Proveedor:
         nav_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         nav_frame.pack(side="top", fill="x", padx=int(rel_size // 3), pady=int(rel_size // 3))
 
-        prev_image = Image.open("resources/icons/white/angle-small-left.png").resize(icon_size)
+        prev_image = Image.open(Proveedor.ruta_recurso("resources/icons/white/angle-small-left.png")).resize(icon_size)
         prev_image = ctk.CTkImage(light_image=prev_image)
         prev_btn = ctk.CTkButton(nav_frame, text="", image=prev_image, fg_color=btn_color,
                                 height=rel_size, width=rel_size,
@@ -254,7 +261,7 @@ class Proveedor:
                                 text_color="white")
         page_label.pack(side="left")
 
-        next_image = Image.open("resources/icons/white/angle-small-right.png").resize(icon_size)
+        next_image = Image.open(Proveedor.ruta_recurso("resources/icons/white/angle-small-right.png")).resize(icon_size)
         next_image = ctk.CTkImage(light_image=next_image)
         next_btn = ctk.CTkButton(nav_frame, text="", image=next_image, fg_color=btn_color,
                                 height=rel_size, width=rel_size,
@@ -267,7 +274,7 @@ class Proveedor:
         action_frame = ctk.CTkFrame(nav_frame, fg_color="#3d3d3d")
         action_frame.pack(side="right", padx=rel_size, pady=rel_size // 1.5)
 
-        add_image = Image.open("resources/icons/white/agregar.png").resize(icon_size)
+        add_image = Image.open(Proveedor.ruta_recurso("resources/icons/white/agregar.png")).resize(icon_size)
         add_image = ctk.CTkImage(light_image=add_image)
         add_btn = ctk.CTkButton(action_frame, text="Agregar Proveedor", image=add_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -275,7 +282,7 @@ class Proveedor:
                                 border_width=1, border_color="white", command=lambda: Proveedor.add_proveedor(frame_right, clear_frame_right, app))
         add_btn.pack(side="left", padx=rel_size // 2)
 
-        edit_image = Image.open("resources/icons/white/boli.png").resize(icon_size)
+        edit_image = Image.open(Proveedor.ruta_recurso("resources/icons/white/boli.png")).resize(icon_size)
         edit_image = ctk.CTkImage(light_image=edit_image)
         edit_btn = ctk.CTkButton(action_frame, text="Editar Proveedor", image=edit_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -283,7 +290,7 @@ class Proveedor:
                                 border_width=1, border_color="white", command=lambda: Proveedor.edit_proveedor(Proveedor.selected_proveedor, frame_right, clear_frame_right, app))
         edit_btn.pack(side="left", padx=rel_size // 2)
 
-        delete_image = Image.open("resources/icons/white/trash.png").resize(icon_size)
+        delete_image = Image.open(Proveedor.ruta_recurso("resources/icons/white/trash.png")).resize(icon_size)
         delete_image = ctk.CTkImage(light_image=delete_image)
         delete_btn = ctk.CTkButton(action_frame, text="Borrar Proveedor", image=delete_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -323,7 +330,8 @@ class Proveedor:
         style.map("Treeview",
                 background=[("selected", "#16466e")],  # celeste oscuro al seleccionar
                 foreground=[("selected", "white")])    # texto blanco en selección
-
+        style.map("Treeview.Heading",
+                background=[("active", "#16466e")])  # Cambia el color que tú quieras
 
         tree = ttk.Treeview(tree_frame, columns=Proveedor.visible_columns, show="headings", height=Proveedor.rows_per_page)
         Proveedor.tree = tree
@@ -394,7 +402,7 @@ class Proveedor:
 
     @staticmethod
     def load_data(frame_right, clear_frame_right, app):
-        db_path = "bd/Concesionario.db"
+        db_path = Proveedor.ruta_recurso("bd/Concesionario.db")
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
@@ -508,7 +516,7 @@ class Proveedor:
         Proveedor.ventanas_secundarias.append(appAdd)
 
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAdd.iconbitmap(Proveedor.icon_path)
 
@@ -616,7 +624,7 @@ class Proveedor:
                 return
             
             try:
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(Proveedor.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         INSERT INTO Proveedor (
@@ -684,8 +692,8 @@ class Proveedor:
 
         Proveedor.ventana_abierta = True
 
-        icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/Concesionario.db")
+        icon_path = Proveedor.ruta_recurso("resources/logos/icon_logo.ico")
+        conn = sqlite3.connect(Proveedor.ruta_recurso("bd/Concesionario.db"))
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -708,7 +716,7 @@ class Proveedor:
         Proveedor.ventanas_secundarias.append(appModify)
 
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appModify.iconbitmap(Proveedor.icon_path)
 
@@ -813,7 +821,7 @@ class Proveedor:
                 return
 
             try:
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(Proveedor.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         UPDATE Proveedor SET
@@ -878,7 +886,7 @@ class Proveedor:
 
         if respuesta:
             try:
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(Proveedor.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("DELETE FROM Proveedor WHERE dni_cif = ?", (selected_dni,))
                     conn.commit()
@@ -893,7 +901,7 @@ class Proveedor:
             return
     @staticmethod
     def obtener_datos_filtrados(columnas_sql):
-        conn = sqlite3.connect("bd/Concesionario.db")
+        conn = sqlite3.connect(Proveedor.ruta_recurso("bd/Concesionario.db"))
         cursor = conn.cursor()
 
         if Proveedor.Filtro:
@@ -947,8 +955,15 @@ class Proveedor:
             if not nombre_archivo.endswith(".pdf"):
                 nombre_archivo += ".pdf"
 
-            ruta = os.path.join("informes", "Proveedores", nombre_archivo)
-            os.makedirs(os.path.dirname(ruta), exist_ok=True)
+            # Ruta absoluta externa donde guardar los informes
+            carpeta_base = Proveedor.ruta_recurso("informes/Proveedores")  # Usa la misma lógica que con imagenes_usuarios
+
+            # Asegúrate de que la carpeta existe
+            os.makedirs(carpeta_base, exist_ok=True)
+
+            # Ruta final del informe
+            ruta = os.path.join(carpeta_base, nombre_archivo)
+
 
             try:
                 if check_predefinido.get():
@@ -1022,9 +1037,9 @@ class Proveedor:
         ventana_nombre.resizable(False, False)
 
         # Icono
-        icon_path = "resources/logos/icon_logo.ico"
+        icon_path = Proveedor.ruta_recurso("resources/logos/icon_logo.ico")
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             try:
                 ventana_nombre.iconbitmap(icon_path)
@@ -1096,7 +1111,7 @@ class Proveedor:
         ventana_nombre.mainloop()
         
     @staticmethod
-    def generar_informe_pdf_fijo(paginas, ruta_salida="informe_Proveedores.pdf"):
+    def generar_informe_pdf_fijo(paginas, ruta_salida=ruta_recurso("informe_Proveedores.pdf")):
 
         columnas = [
             "DNI/CIF", "Nombre", "Apellido1", "Apellido2",
@@ -1115,13 +1130,13 @@ class Proveedor:
             "Idioma": 1
         }
 
-        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
+        font_path = Proveedor.ruta_recurso("resources/font/sans-sulex/SANSSULEX.ttf")
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
 
         c = canvas.Canvas(ruta_salida, pagesize=landscape(A4))
         width, height = landscape(A4)
 
-        logo_path = "resources/logos/hgcnegro.png"
+        logo_path = Proveedor.ruta_recurso("resources/logos/hgcnegro.png")
         total_padding = 2 * cm
 
         peso_total = sum(pesos.values())
@@ -1200,15 +1215,15 @@ class Proveedor:
 
 
     @staticmethod
-    def generar_informe_pdf(paginas, columnas, ruta_salida="informe_Proveedores.pdf"):
+    def generar_informe_pdf(paginas, columnas, ruta_salida=ruta_recurso("informe_Proveedores.pdf")):
 
-        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
+        font_path = Proveedor.ruta_recurso("resources/font/sans-sulex/SANSSULEX.ttf")
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
 
         c = canvas.Canvas(ruta_salida, pagesize=landscape(A4))
         width, height = landscape(A4)
 
-        logo_path = "resources/logos/hgcnegro.png"
+        logo_path = Proveedor.ruta_recurso("resources/logos/hgcnegro.png")
         total_padding = 2 * cm
 
         num_columnas = len(columnas)
@@ -1291,7 +1306,7 @@ class Proveedor:
     @staticmethod
     def get_all_proveedor_data():
 
-        conn = sqlite3.connect("bd/Concesionario.db")  # cambia según uses
+        conn = sqlite3.connect(Proveedor.ruta_recurso("bd/Concesionario.db"))  # cambia según uses
         cursor = conn.cursor()
 
         columns = Proveedor.visible_columns
@@ -1322,7 +1337,7 @@ class Proveedor:
         Proveedor.ventanas_secundarias.append(app_sp)
 
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             app_sp.iconbitmap(Proveedor.icon_path)
 
@@ -1330,7 +1345,7 @@ class Proveedor:
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
 
-        icon_path = "resources/logos/icon_logo.ico"
+        icon_path = Proveedor.ruta_recurso("resources/logos/icon_logo.ico")
         if icon_path and os.path.exists(icon_path):
             app_sp.iconbitmap(icon_path)
 
@@ -1409,7 +1424,7 @@ class Proveedor:
             datos = {k: (v.get().strip() if isinstance(v, ctk.CTkEntry) else v.get()) for k, v in entradas.items()}
             print("Datos recogidos:", datos)
 
-            db_path = "bd/Concesionario.db"
+            db_path = Proveedor.ruta_recurso("bd/Concesionario.db")
 
             try:
                 conn = sqlite3.connect(db_path)
@@ -1537,8 +1552,8 @@ class Proveedor:
 
         Proveedor.ventana_abierta = True  # Marcamos la ventana como abierta
 
-        icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/Concesionario.db")
+        icon_path = Proveedor.ruta_recurso("resources/logos/icon_logo.ico")
+        conn = sqlite3.connect(Proveedor.ruta_recurso("bd/Concesionario.db"))
         cursor = conn.cursor()
         cursor.execute("SELECT dni_cif FROM Proveedor WHERE dni_cif = ?", (dni_cif,))
         proveedor = cursor.fetchone()
@@ -1554,7 +1569,7 @@ class Proveedor:
         Proveedor.ventanas_secundarias.append(appAddF)
 
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAddF.iconbitmap(Proveedor.icon_path)
 
@@ -1693,7 +1708,7 @@ class Proveedor:
                 return
 
             try:
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(Proveedor.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     cursor.execute(f"""
                         INSERT INTO FacturasProveedores (
@@ -1786,3 +1801,4 @@ class Proveedor:
         Proveedor.update_sort_state(col)
         Proveedor.refresh_treeview_headings(tree, frame_right, clear_frame_right, app)  # ← aquí
         Proveedor.load_data(frame_right, clear_frame_right, app)
+

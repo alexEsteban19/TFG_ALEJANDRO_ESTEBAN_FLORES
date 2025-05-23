@@ -1,3 +1,4 @@
+
 # --- Módulos estándar ---
 import os
 import sys
@@ -40,6 +41,12 @@ from matplotlib import font_manager
 
 class VO:
     
+    def ruta_recurso(relativa):
+        """Devuelve la ruta absoluta a un recurso, adaptada para PyInstaller."""
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relativa)
+        return os.path.join(os.path.abspath("."), relativa)
+    
     # Definimos variables base
     current_page = 1
     rows_per_page = 20
@@ -50,7 +57,7 @@ class VO:
     selected_VO = None  # Mantener el cliente seleccionado como variable estática
     query_params = ""
     ventana_abierta = False  
-    icon_path = "resources/logos/icon_logo.ico"
+    icon_path = ruta_recurso("resources/logos/icon_logo.ico")
     ventanas_secundarias = []
 
     sort_column = None
@@ -131,10 +138,10 @@ class VO:
 
         if VO.visible_columns is None or not VO.visible_columns:
             VO.visible_columns = ["matriculaVO","numeroExpediente","marca","modelo","version",
-                                  "chasis","anomatriculacion","kilometros",
-                                  "CV","colorExterno","N_puertas","TipoCombustible"
-                                  ,"situacion","DiasStock","ubicacionStock","PrecioVentaVO"
-                                  ,"FechaTransferenciaCompleta","FechaITVhasta", "cifExpropietario"]
+                                "chasis","anomatriculacion","kilometros",
+                                "CV","colorExterno","N_puertas","TipoCombustible"
+                                ,"situacion","DiasStock","ubicacionStock","PrecioVentaVO"
+                                ,"FechaTransferenciaCompleta","FechaITVhasta", "cifExpropietario"]
             
         # Crear contenedor invisible
         main_container = ctk.CTkFrame(frame_right, fg_color="#3d3d3d")
@@ -161,7 +168,7 @@ class VO:
         spacer = ctk.CTkLabel(search_frame, text="")  # Vacío, sirve solo para expandir
         spacer.pack(side="left", expand=True)
 
-        informe_image = Image.open("resources/icons/white/votacion.png").resize(icon_size)
+        informe_image = Image.open(VO.ruta_recurso("resources/icons/white/votacion.png")).resize(icon_size)
         informe_image = ctk.CTkImage(light_image=informe_image)
         informe_btn = ctk.CTkButton(search_frame, text="Generar Informe", image=informe_image, fg_color=btn_color,
                                 font=("Sans Sulex", int(rel_size)),
@@ -169,7 +176,7 @@ class VO:
                                 border_width=2, border_color="white", command=lambda: VO.generate_inform(app))
         informe_btn.pack(side="left", padx=rel_size // 2, pady=int(rel_size // 1.8))
 
-        search_plus_image = Image.open("resources/icons/white/search.png").resize(icon_size)
+        search_plus_image = Image.open(VO.ruta_recurso("resources/icons/white/search.png")).resize(icon_size)
         search_plus_image = ctk.CTkImage(light_image=search_plus_image)
         search_plus_button = ctk.CTkButton(search_frame, text="", image=search_plus_image, fg_color=btn_color,
                                     hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -178,7 +185,7 @@ class VO:
                                     )
         search_plus_button.pack(side="left", padx=rel_size // 1.5)
 
-        refresh_image = Image.open("resources/icons/white/refresh.png").resize(icon_size)
+        refresh_image = Image.open(VO.ruta_recurso("resources/icons/white/refresh.png")).resize(icon_size)
         refresh_image = ctk.CTkImage(light_image=refresh_image)
         clear_search_button = ctk.CTkButton(search_frame, text="", image=refresh_image, fg_color=btn_color,
                                             hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -238,7 +245,7 @@ class VO:
             checkbox.pack(anchor="w", padx=int(rel_size // 3), pady=int(rel_size // 1.2))
 
 
-      
+    
         # Funciones toggle y apply
         def toggle_filter_dropdown():
             padding_x = 0.015  # Márgenes horizontales (relativos)
@@ -266,7 +273,7 @@ class VO:
             VO.abrir_VO(frame_right, clear_frame_right, app, mantener_filtro=True)
             
 
-        filter_image = Image.open("resources/icons/white/ojoblanco.png").resize(icon_size)
+        filter_image = Image.open(VO.ruta_recurso("resources/icons/white/ojoblanco.png")).resize(icon_size)
         filter_image = ctk.CTkImage(light_image=filter_image)
         filter_button = ctk.CTkButton(search_frame, text="", image=filter_image, fg_color=btn_color,
                                     hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -285,7 +292,7 @@ class VO:
         nav_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         nav_frame.pack(side="top", fill="x", padx=int(rel_size // 3), pady=int(rel_size // 3))
 
-        prev_image = Image.open("resources/icons/white/angle-small-left.png").resize(icon_size)
+        prev_image = Image.open(VO.ruta_recurso("resources/icons/white/angle-small-left.png")).resize(icon_size)
         prev_image = ctk.CTkImage(light_image=prev_image)
         prev_btn = ctk.CTkButton(nav_frame, text="", image=prev_image, fg_color=btn_color,
                                 height=rel_size, width=rel_size,
@@ -300,7 +307,7 @@ class VO:
                                 text_color="white")
         page_label.pack(side="left")
 
-        next_image = Image.open("resources/icons/white/angle-small-right.png").resize(icon_size)
+        next_image = Image.open(VO.ruta_recurso("resources/icons/white/angle-small-right.png")).resize(icon_size)
         next_image = ctk.CTkImage(light_image=next_image)
         next_btn = ctk.CTkButton(nav_frame, text="", image=next_image, fg_color=btn_color,
                                 height=rel_size, width=rel_size,
@@ -313,7 +320,7 @@ class VO:
         action_frame = ctk.CTkFrame(nav_frame, fg_color="#3d3d3d")
         action_frame.pack(side="right", padx=rel_size, pady=rel_size // 1.5)
 
-        VistaVenta_image = Image.open("resources/icons/white/votacion.png").resize(icon_size)
+        VistaVenta_image = Image.open(VO.ruta_recurso("resources/icons/white/votacion.png")).resize(icon_size)
         VistaVenta_image = ctk.CTkImage(light_image=VistaVenta_image)
         VistaVenta_btn = ctk.CTkButton(action_frame, text="Vista de venta", image=VistaVenta_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -321,7 +328,7 @@ class VO:
                                 border_width=1, border_color="white", command=lambda: VO.sell_inform(app))
         VistaVenta_btn.pack(side="left", padx=rel_size // 2)
 
-        add_image = Image.open("resources/icons/white/agregar.png").resize(icon_size)
+        add_image = Image.open(VO.ruta_recurso("resources/icons/white/agregar.png")).resize(icon_size)
         add_image = ctk.CTkImage(light_image=add_image)
         add_btn = ctk.CTkButton(action_frame, text="Agregar VO", image=add_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -329,7 +336,7 @@ class VO:
                                 border_width=1, border_color="white", command=lambda: VO.add_VO(frame_right, clear_frame_right, app))
         add_btn.pack(side="left", padx=rel_size // 2)
 
-        edit_image = Image.open("resources/icons/white/boli.png").resize(icon_size)
+        edit_image = Image.open(VO.ruta_recurso("resources/icons/white/boli.png")).resize(icon_size)
         edit_image = ctk.CTkImage(light_image=edit_image)
         edit_btn = ctk.CTkButton(action_frame, text="Modificar VO", image=edit_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -337,7 +344,7 @@ class VO:
                                 border_width=1, border_color="white", command=lambda: VO.edit_VO(VO.selected_VO, frame_right, clear_frame_right, app))
         edit_btn.pack(side="left", padx=rel_size // 2)
 
-        delete_image = Image.open("resources/icons/white/trash.png").resize(icon_size)
+        delete_image = Image.open(VO.ruta_recurso("resources/icons/white/trash.png")).resize(icon_size)
         delete_image = ctk.CTkImage(light_image=delete_image)
         delete_btn = ctk.CTkButton(action_frame, text="Borrar VO", image=delete_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -377,7 +384,8 @@ class VO:
         style.map("Treeview",
                 background=[("selected", "#16466e")],  # celeste oscuro al seleccionar
                 foreground=[("selected", "white")])    # texto blanco en selección
-
+        style.map("Treeview.Heading",
+                background=[("active", "#16466e")])  # Cambia el color que tú quieras
 
         tree = ttk.Treeview(tree_frame, columns=VO.visible_columns, show="headings", height=VO.rows_per_page)
         VO.tree = tree
@@ -396,8 +404,6 @@ class VO:
                 command=partial(VO.sort_column_click, col, tree, frame_right, clear_frame_right, app)
             )
             tree.column(col, width=int(rel_size * 9), anchor="center", stretch=False)
-
-
 
 
         # Inserta filas con colores alternos
@@ -438,7 +444,7 @@ class VO:
     # Metodo  que nos ayuda a cargar todos los datos que vamos a escribir en la base de datos
     @staticmethod
     def load_data(frame_right, clear_frame_right, app):
-        db_path = "bd/Concesionario.db"
+        db_path = VO.ruta_recurso("bd/Concesionario.db")
         try:
             #Creamos la conexión con la base de datos
             conn = sqlite3.connect(db_path)
@@ -578,7 +584,7 @@ class VO:
 
         # Configuración específica para Windows (icono de la aplicación)
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAdd.iconbitmap(VO.icon_path)
 
@@ -726,7 +732,7 @@ class VO:
                     messagebox.showerror("Error", "Introduce primero la Matrícula antes de seleccionar la imagen.", parent=appAdd)
                     return
 
-                carpeta_destino = "imagenesCoches"
+                carpeta_destino = VO.ruta_recurso("imagenesCoches")
                 if not os.path.exists(carpeta_destino):
                     os.makedirs(carpeta_destino)
 
@@ -744,8 +750,12 @@ class VO:
 
                 try:
                     shutil.copyfile(ruta_origen, ruta_destino)
+
+                    # Obtener ruta relativa al directorio actual del proyecto
+                    ruta_relativa = os.path.relpath(ruta_destino, start=os.getcwd())
+
                     entry_ruta.delete(0, "end")
-                    entry_ruta.insert(0, ruta_destino)
+                    entry_ruta.insert(0, ruta_relativa)
                 except Exception as e:
                     messagebox.showerror("Error al copiar imagen", str(e), parent=appAdd)
         
@@ -807,7 +817,7 @@ class VO:
 
             # Si todo es válido, hacemos el update
             try:
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(VO.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     # En el cursos, ponemos {tabla}, para insertar los datos en la tabla necesaria, y asi podemos
                     # ahorrar algo de código
@@ -886,8 +896,8 @@ class VO:
         VO.ventana_abierta = True
 
         # Recolección de todos los datos del vehículo seleccionado
-        icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/Concesionario.db")
+        icon_path = VO.ruta_recurso("resources/logos/icon_logo.ico")
+        conn = sqlite3.connect(VO.ruta_recurso("bd/Concesionario.db"))
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM VO WHERE matriculaVO = ?", (matriculaVO,))
         VhOc = cursor.fetchone()
@@ -905,7 +915,7 @@ class VO:
 
         # Asociamos el icono personalizado al proceso para que lo detecte bien
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appModify.iconbitmap(VO.icon_path)
 
@@ -1022,7 +1032,7 @@ class VO:
                             messagebox.showerror("Error", "Introduce primero el Nombre de Usuario antes de seleccionar la imagen.", parent=appModify)
                             return
 
-                        carpeta_destino = "imagenesCoches"
+                        carpeta_destino = VO.ruta_recurso("imagenesCoches")
                         if not os.path.exists(carpeta_destino):
                             os.makedirs(carpeta_destino)
 
@@ -1040,8 +1050,12 @@ class VO:
 
                         try:
                             shutil.copyfile(ruta_origen, ruta_destino)
+
+                            # Obtener ruta relativa al directorio actual del proyecto
+                            ruta_relativa = os.path.relpath(ruta_destino, start=os.getcwd())
+
                             entry_ruta.delete(0, "end")
-                            entry_ruta.insert(0, ruta_destino)
+                            entry_ruta.insert(0, ruta_relativa)
                         except Exception as e:
                             messagebox.showerror("Error al copiar imagen", str(e), parent=appModify)
 
@@ -1178,7 +1192,7 @@ class VO:
 
             # Si todo es válido, hacemos el update
             try:
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(VO.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     # En el cursos, ponemos {tabla}, para insertar los datos en la tabla necesaria, y asi podemos
                     # ahorrar algo de código
@@ -1239,7 +1253,7 @@ class VO:
         if respuesta:
             try:
                 # Primero obtenemos la ruta de la imagen asociada al VO
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(VO.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("SELECT rutaImagen FROM VO WHERE matriculaVO = ?", (selected_VO,))
                     ruta_imagen = cursor.fetchone()
@@ -1252,7 +1266,7 @@ class VO:
                         messagebox.showwarning("Advertencia", f"No se pudo eliminar la imagen del VO:\n{e}")
 
                 # Ahora borramos el VO de la base de datos
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(VO.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("DELETE FROM VO WHERE matriculaVO = ?", (selected_VO,))
                     conn.commit()
@@ -1269,7 +1283,7 @@ class VO:
     
     @staticmethod
     def obtener_datos_filtrados(columnas_sql):
-        conn = sqlite3.connect("bd/Concesionario.db")
+        conn = sqlite3.connect(VO.ruta_recurso("bd/Concesionario.db"))
         cursor = conn.cursor()
 
         if VO.Filtro:
@@ -1328,8 +1342,14 @@ class VO:
             if not nombre_archivo.endswith(".pdf"):
                 nombre_archivo += ".pdf"
 
-            ruta = os.path.join("informes", "Vehiculos", nombre_archivo)  # Ruta final del informe
-            os.makedirs(os.path.dirname(ruta), exist_ok=True)  # Crea la carpeta si no existe
+            # Ruta absoluta externa donde guardar los informes
+            carpeta_base = VO.ruta_recurso("informes/Vehiculos")  # Usa la misma lógica que con imagenes_usuarios
+
+            # Asegúrate de que la carpeta existe
+            os.makedirs(carpeta_base, exist_ok=True)
+
+            # Ruta final del informe
+            ruta = os.path.join(carpeta_base, nombre_archivo)
 
             try:
                 if check_predefinido.get():
@@ -1432,9 +1452,9 @@ class VO:
         ventana_nombre.resizable(False, False)
 
         # Icono
-        icon_path = "resources/images/oldIcon.ico"
+        icon_path = VO.ruta_recurso("resources/logos/icon_logo.ico")
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             try:
                 ventana_nombre.iconbitmap(icon_path)
@@ -1481,7 +1501,7 @@ class VO:
             hover_color="#540303",
             command=lambda: toggle_check("predef")
         )
-        check_predefinido.pack(anchor="w", pady=(0, int(5 * escala_h)))
+        check_predefinido.pack(anchor="w", pady=(0, int(7 * escala_h)))
 
         check_personalizado = ctk.CTkCheckBox(
             frame_checks,
@@ -1492,7 +1512,7 @@ class VO:
             hover_color="#540303",
             command=lambda: toggle_check("personal")
         )
-        check_personalizado.pack(anchor="w")
+        check_personalizado.pack(anchor="w", pady=(0, int(7 * escala_h)))
 
         check_grafico = ctk.CTkCheckBox(
             frame_checks,
@@ -1537,7 +1557,7 @@ class VO:
         # Obtener matrícula del vehículo seleccionado
         matricula = VO.selected_VO
         # Definir ruta del PDF que se generará
-        ruta_pdf = os.path.abspath(f"informes/fichas/ficha_{matricula}.pdf")
+        ruta_pdf = os.path.abspath(VO.ruta_recurso(f"informes/fichas/ficha_{matricula}.pdf"))
 
         # Si el archivo PDF ya existe, preguntar al usuario si desea sobrescribirlo
         if os.path.exists(ruta_pdf):
@@ -1555,7 +1575,7 @@ class VO:
                 return
 
         # Conexión a la base de datos para recuperar datos del vehículo
-        conn = sqlite3.connect("bd/Concesionario.db")
+        conn = sqlite3.connect(VO.ruta_recurso("bd/Concesionario.db"))
         cursor = conn.cursor()
         cursor.execute("""
             SELECT matriculaVO, numeroExpediente, marca, modelo, version, CV, CC,
@@ -1574,14 +1594,14 @@ class VO:
         (matricula, expediente, marca, modelo, version, cv, cc, km, precio, distintivo, ruta_imagen) = row
 
         # Usar imagen por defecto si no hay imagen o la ruta no existe
-        ruta_imagen = ruta_imagen if ruta_imagen and os.path.exists(ruta_imagen) else "imagenesCoches/noImage.jpg"
+        ruta_imagen = ruta_imagen if ruta_imagen and os.path.exists(ruta_imagen) else VO.ruta_recurso("imagenesCoches/noImage.jpg")
 
         # Crear carpeta de destino si no existe
         os.makedirs(os.path.dirname(ruta_pdf), exist_ok=True)
 
         try:
             # Registrar fuente personalizada para el PDF
-            font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
+            font_path = VO.ruta_recurso("resources/font/sans-sulex/SANSSULEX.ttf")
             pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
 
             # Crear lienzo del PDF con tamaño A4
@@ -1705,13 +1725,13 @@ class VO:
         }
 
         # Registrar fuente personalizada
-        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
+        font_path = VO.ruta_recurso("resources/font/sans-sulex/SANSSULEX.ttf")
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
 
         # Crear objeto PDF en orientación horizontal
         c = canvas.Canvas(ruta_salida, pagesize=landscape(A4))
         width, height = landscape(A4)
-        logo_path = "resources/logos/hgcnegro.png"
+        logo_path = VO.ruta_recurso("resources/logos/hgcnegro.png")
         # Configuraciones de márgenes y proporción
         total_padding = 2 * cm
 
@@ -1797,16 +1817,105 @@ class VO:
 
         c.save()
 
+
+    @staticmethod
+    def generar_informe_pdf(paginas, columnas, ruta_salida = "informe_VO.pdf"):
+
+        font_path = VO.ruta_recurso("resources/font/sans-sulex/SANSSULEX.ttf")
+        pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
+
+        c = canvas.Canvas(ruta_salida, pagesize=landscape(A4))
+        width, height = landscape(A4)
+
+        logo_path = VO.ruta_recurso("resources/logos/hgcnegro.png")
+        total_padding = 2 * cm
+
+        num_columnas = len(columnas)
+        peso_columna = (width - total_padding) / num_columnas  # Equitativo
+
+        font_size = 9
+        altura_fila = 0.75 * cm
+        altura_encabezado = 1.0 * cm
+        max_chars_per_line = 30
+        total_paginas = len(paginas)
+
+        for num_pagina, datos_pagina in enumerate(paginas, start=1):
+            y = height - 1 * cm
+
+            # Cambiar la posición del logo al lado derecho
+            try:
+                logo = ImageReader(logo_path)
+                orig_width, orig_height = logo.getSize()
+                logo_width = 4 * cm
+                logo_height = (orig_height / orig_width) * logo_width
+                x_logo = width - logo_width - 1 * cm  # Alinear el logo a la derecha con un margen de 1 cm
+                c.drawImage(logo, x_logo, y - logo_height + 0.5 * cm, width=logo_width, height=logo_height, mask='auto')
+            except Exception as e:
+                print(f"Error al cargar el logo: {e}")
+
+            # Ajustar espacio entre el logo y el título
+            y -= 2 * cm
+
+            # Título
+            c.setFont("Sans Sulex", 14)
+            c.setFillColor(colors.black)
+            c.drawString(1 * cm, y, "LISTADO DE VEHÍCULOS DE OCASIÓN")
+
+            y -= 1.4 * cm
+
+            # Encabezados
+            c.setFillColorRGB(0.27, 0.27, 0.27)
+            c.rect(1 * cm - 0.1 * cm, y - 0.1 * cm, width - total_padding + 0.2 * cm, altura_encabezado, fill=True, stroke=False)
+            c.setFillColor(colors.white)
+            c.setFont("Sans Sulex", font_size + 1)
+
+            col_x = 1 * cm
+            for col in columnas:
+                nombre_col = str(col)[:max_chars_per_line]
+                c.drawString(col_x, y + altura_encabezado / 2 - font_size / 2.5, nombre_col)
+                col_x += peso_columna
+
+            y -= altura_encabezado
+            c.setFont("Sans Sulex", font_size)
+
+            # Filas de datos
+            for fila in datos_pagina:
+                c.setFillColor(colors.whitesmoke if datos_pagina.index(fila) % 2 == 0 else colors.lightgrey)
+                c.rect(1 * cm - 0.1 * cm, y - 0.1 * cm, width - total_padding + 0.2 * cm, altura_fila, fill=True, stroke=False)
+                c.setFillColor(colors.black)
+
+                col_x = 1 * cm
+                for idx, item in enumerate(fila):
+                    texto = str(item) if item is not None else ""
+                    max_chars = int((peso_columna / cm) * 5.5)
+                    lineas = wrap(texto, width=max_chars)[:2]
+                    for j, linea in enumerate(lineas):
+                        c.drawString(col_x, y + altura_fila / 2 - j * (font_size + 1.5), linea)
+                    col_x += peso_columna
+
+                y -= altura_fila
+
+            # Pie de página
+            fecha_actual = format_datetime(datetime.now(), "EEEE, d 'de' MMMM 'de' y, HH:mm", locale="es")
+            c.setFont("Sans Sulex", 9)
+            c.setFillColor(colors.black)
+            c.drawString(1 * cm, 0.4 * cm, f"Fecha de creación: {fecha_actual}")
+            c.drawRightString(width - 1 * cm, 0.4 * cm, f"Página {num_pagina} de {total_paginas}")
+
+            c.showPage()
+        c.save()
+
+
     @staticmethod
     def generar_grafico_pdf(ruta):
 
         # ─── 1. Registrar la fuente personalizada ───
-        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
+        font_path = VO.ruta_recurso("resources/font/sans-sulex/SANSSULEX.ttf")
         prop = font_manager.FontProperties(fname=font_path)
         plt.rcParams['font.family'] = prop.get_name()
 
         # ─── 2. Obtener datos ───
-        conn = sqlite3.connect("bd/Concesionario.db")
+        conn = sqlite3.connect(VO.ruta_recurso("bd/Concesionario.db"))
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -1848,7 +1957,7 @@ class VO:
 
         plt.tight_layout()
 
-        imagen_path = "grafico_marcas.png"
+        imagen_path = VO.ruta_recurso("grafico_marcas.png")
         plt.savefig(imagen_path, bbox_inches='tight', dpi=300)
         plt.close()
 
@@ -1860,7 +1969,7 @@ class VO:
         pdf.set_font("SansSulex", size=14)
 
         # Logo a la izquierda arriba
-        pdf.image("resources/logos/hgcnegro.png", x=10, y=10, w=30)
+        pdf.image(VO.ruta_recurso("resources/logos/hgcnegro.png"), x=10, y=10, w=30)
 
         # Título más abajo
         pdf.set_y(35)
@@ -1924,7 +2033,7 @@ class VO:
         
         if sys.platform == "win32":
 
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             app_sp.iconbitmap(VO.icon_path)
 
@@ -1932,7 +2041,7 @@ class VO:
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
 
-        icon_path = "resources/logos/icon_logo.ico"
+        icon_path = VO.ruta_recurso("resources/logos/icon_logo.ico")
         if icon_path and os.path.exists(icon_path):
             app_sp.iconbitmap(icon_path)
 
@@ -2120,7 +2229,7 @@ class VO:
             datos = {k: v.get().strip() for k, v in entradas.items()}
             print("Datos recogidos:", datos)
 
-            db_path = "bd/Concesionario.db"
+            db_path = VO.ruta_recurso("bd/Concesionario.db")
 
             try:
                 conn = sqlite3.connect(db_path)
@@ -2357,6 +2466,6 @@ class VO:
 
         # Se recargan los datos con la nueva ordenación aplicada
         VO.load_data(frame_right, clear_frame_right, app)
-
+    
 
 

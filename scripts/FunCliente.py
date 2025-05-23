@@ -20,7 +20,15 @@ import ctypes
 import platform
 
 class Cliente:
-    
+
+    @staticmethod
+    def ruta_recurso(relativa):
+        """Devuelve la ruta absoluta a un recurso, adaptada para PyInstaller."""
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relativa)
+        return os.path.join(os.path.abspath("."), relativa)
+
+
     # Definimos variables base
     current_page = 1
     rows_per_page = 20
@@ -31,7 +39,7 @@ class Cliente:
     selected_client = None  # Mantener el cliente seleccionado como variable estática
     query_params = ""
     ventana_abierta = False  
-    icon_path = "resources/logos/icon_logo.ico"
+    icon_path = ruta_recurso("resources/logos/icon_logo.ico")
     ventanas_secundarias = []
     
     sort_column = None
@@ -126,7 +134,7 @@ class Cliente:
         spacer.pack(side="left", expand=True)
 
 
-        factu_image = Image.open("resources/icons/white/facturas.png").resize(icon_size)
+        factu_image = Image.open(Cliente.ruta_recurso("resources/icons/white/facturas.png")).resize(icon_size)
         factu_image = ctk.CTkImage(light_image=factu_image)
         factu_btn = ctk.CTkButton(search_frame, text="Crear Factura", image=factu_image, fg_color=btn_color,
                                 font=("Sans Sulex", int(rel_size)),
@@ -135,7 +143,7 @@ class Cliente:
         factu_btn.pack(side="left", padx=rel_size // 2, pady=int(rel_size // 1.8))
 
 
-        informe_image = Image.open("resources/icons/white/votacion.png").resize(icon_size)
+        informe_image = Image.open(Cliente.ruta_recurso("resources/icons/white/votacion.png")).resize(icon_size)
         informe_image = ctk.CTkImage(light_image=informe_image)
         informe_btn = ctk.CTkButton(search_frame, text="Generar Informe", image=informe_image, fg_color=btn_color,
                                 font=("Sans Sulex", int(rel_size)),
@@ -144,7 +152,7 @@ class Cliente:
         informe_btn.pack(side="left", padx=rel_size // 2, pady=int(rel_size // 1.8))
 
 
-        search_plus_image = Image.open("resources/icons/white/search.png").resize(icon_size)
+        search_plus_image = Image.open(Cliente.ruta_recurso("resources/icons/white/search.png")).resize(icon_size)
         search_plus_image = ctk.CTkImage(light_image=search_plus_image)
         search_plus_button = ctk.CTkButton(search_frame, text="", image=search_plus_image, fg_color=btn_color,
                                     hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -155,7 +163,7 @@ class Cliente:
         
         #Busqueda normal
 
-        refresh_image = Image.open("resources/icons/white/refresh.png").resize(icon_size)
+        refresh_image = Image.open(Cliente.ruta_recurso("resources/icons/white/refresh.png")).resize(icon_size)
         refresh_image = ctk.CTkImage(light_image=refresh_image)
         clear_search_button = ctk.CTkButton(search_frame, text="", image=refresh_image, fg_color=btn_color,
                                             hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -228,7 +236,7 @@ class Cliente:
             Cliente.abrir_cliente(frame_right, clear_frame_right, app, mantener_filtro=True)
 
         # Botón de filtro
-        filter_image = Image.open("resources/icons/white/ojoblanco.png").resize(icon_size)
+        filter_image = Image.open(Cliente.ruta_recurso("resources/icons/white/ojoblanco.png")).resize(icon_size)
         filter_image = ctk.CTkImage(light_image=filter_image)
         filter_button = ctk.CTkButton(search_frame, text="", image=filter_image, fg_color=btn_color,
                                     hover_color=btn_hover, corner_radius=int(rel_size // 2),
@@ -247,7 +255,7 @@ class Cliente:
         nav_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         nav_frame.pack(side="top", fill="x", padx=int(rel_size // 3), pady=int(rel_size // 3))
 
-        prev_image = Image.open("resources/icons/white/angle-small-left.png").resize(icon_size)
+        prev_image = Image.open(Cliente.ruta_recurso("resources/icons/white/angle-small-left.png")).resize(icon_size)
         prev_image = ctk.CTkImage(light_image=prev_image)
         prev_btn = ctk.CTkButton(nav_frame, text="", image=prev_image, fg_color=btn_color,
                                 height=rel_size, width=rel_size,
@@ -262,7 +270,7 @@ class Cliente:
                                 text_color="white")
         page_label.pack(side="left")
 
-        next_image = Image.open("resources/icons/white/angle-small-right.png").resize(icon_size)
+        next_image = Image.open(Cliente.ruta_recurso("resources/icons/white/angle-small-right.png")).resize(icon_size)
         next_image = ctk.CTkImage(light_image=next_image)
         next_btn = ctk.CTkButton(nav_frame, text="", image=next_image, fg_color=btn_color,
                                 height=rel_size, width=rel_size,
@@ -275,7 +283,7 @@ class Cliente:
         action_frame = ctk.CTkFrame(nav_frame, fg_color="#3d3d3d")
         action_frame.pack(side="right", padx=rel_size, pady=rel_size // 1.5)
 
-        add_image = Image.open("resources/icons/white/agregar.png").resize(icon_size)
+        add_image = Image.open(Cliente.ruta_recurso("resources/icons/white/agregar.png")).resize(icon_size)
         add_image = ctk.CTkImage(light_image=add_image)
         add_btn = ctk.CTkButton(action_frame, text="Agregar Cliente", image=add_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -283,7 +291,7 @@ class Cliente:
                                 border_width=1, border_color="white", command=lambda: Cliente.add_client(frame_right, clear_frame_right, app))
         add_btn.pack(side="left", padx=rel_size // 2)
 
-        edit_image = Image.open("resources/icons/white/boli.png").resize(icon_size)
+        edit_image = Image.open(Cliente.ruta_recurso("resources/icons/white/boli.png")).resize(icon_size)
         edit_image = ctk.CTkImage(light_image=edit_image)
         edit_btn = ctk.CTkButton(action_frame, text="Editar Cliente", image=edit_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -291,7 +299,7 @@ class Cliente:
                                 border_width=1, border_color="white", command=lambda: Cliente.edit_client(Cliente.selected_client, frame_right, clear_frame_right, app))
         edit_btn.pack(side="left", padx=rel_size // 2)
 
-        delete_image = Image.open("resources/icons/white/trash.png").resize(icon_size)
+        delete_image = Image.open(Cliente.ruta_recurso("resources/icons/white/trash.png")).resize(icon_size)
         delete_image = ctk.CTkImage(light_image=delete_image)
         delete_btn = ctk.CTkButton(action_frame, text="Borrar Cliente", image=delete_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -331,7 +339,8 @@ class Cliente:
         style.map("Treeview",
                 background=[("selected", "#16466e")],  # celeste oscuro al seleccionar
                 foreground=[("selected", "white")])    # texto blanco en selección
-
+        style.map("Treeview.Heading",
+                background=[("active", "#16466e")])  # Cambia el color que tú quieras
 
         tree = ttk.Treeview(tree_frame, columns=Cliente.visible_columns, show="headings", height=Cliente.rows_per_page)
         Cliente.tree = tree
@@ -403,7 +412,7 @@ class Cliente:
 
     @staticmethod
     def load_data(frame_right, clear_frame_right, app):
-        db_path = "bd/Concesionario.db"
+        db_path = Cliente.ruta_recurso("bd/Concesionario.db")
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
@@ -516,7 +525,7 @@ class Cliente:
         Cliente.ventanas_secundarias.append(appAdd)
 
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAdd.iconbitmap(Cliente.icon_path)
 
@@ -609,7 +618,7 @@ class Cliente:
 
                 if isinstance(entrada, ctk.CTkOptionMenu):
                     if entrada.cget("values")[0] in ["Sí", "No"]:
-                        valores.append("1" if entrada.get() == "Sí" else "0")
+                        valores.append("Sí" if entrada.get() == "Sí" else "No")
                     else:
                         valores.append(entrada.get())
 
@@ -640,7 +649,7 @@ class Cliente:
                 return  # Evita continuar y mantiene la ventana abierta
             
             try:
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(Cliente.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         INSERT INTO Cliente (
@@ -707,8 +716,8 @@ class Cliente:
 
         Cliente.ventana_abierta = True  # Marcamos la ventana como abierta
 
-        icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/Concesionario.db")
+        icon_path = Cliente.ruta_recurso("resources/logos/icon_logo.ico")
+        conn = sqlite3.connect(Cliente.ruta_recurso("bd/Concesionario.db"))
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Cliente WHERE dni_cif = ?", (dni_cif,))
         cliente = cursor.fetchone()
@@ -723,7 +732,7 @@ class Cliente:
         Cliente.ventanas_secundarias.append(appModify)
 
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appModify.iconbitmap(Cliente.icon_path)
 
@@ -826,7 +835,7 @@ class Cliente:
                     dropdown_fg_color="#181818",  # Fondo negro en la lista del OptionMenu
                     font=fuente_labels,  # Fuente de texto del OptionMenu
                 )
-                option_menu.set("Sí" if valor == "1" else "No")
+                option_menu.set("Sí" if valor == "Sí" else "No")
                 option_menu.pack(side="left", fill="x", expand=True)
                 entradas.append(option_menu)
 
@@ -885,7 +894,7 @@ class Cliente:
 
                 if isinstance(entrada, ctk.CTkOptionMenu):
                     if entrada.cget("values")[0] in ["Sí", "No"]:
-                        valores.append("1" if entrada.get() == "Sí" else "0")
+                        valores.append("Sí" if entrada.get() == "Sí" else "No")
                     else:
                         valores.append(entrada.get())
 
@@ -913,7 +922,7 @@ class Cliente:
 
             # Si todo es válido, hacemos el update
             try:
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(Cliente.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         UPDATE Cliente SET
@@ -965,7 +974,7 @@ class Cliente:
 
         if respuesta:
             try:
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(Cliente.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("DELETE FROM Cliente WHERE dni_cif = ?", (selected_dni,))
                     conn.commit()
@@ -981,7 +990,7 @@ class Cliente:
       
     @staticmethod
     def obtener_datos_filtrados(columnas_sql):
-        conn = sqlite3.connect("bd/Concesionario.db")
+        conn = sqlite3.connect(Cliente.ruta_recurso("bd/Concesionario.db"))
         cursor = conn.cursor()
 
         if Cliente.Filtro:
@@ -1035,8 +1044,15 @@ class Cliente:
             if not nombre_archivo.endswith(".pdf"):
                 nombre_archivo += ".pdf"
 
-            ruta = os.path.join("informes", "Clientes", nombre_archivo)
-            os.makedirs(os.path.dirname(ruta), exist_ok=True)
+            # Ruta absoluta externa donde guardar los informes
+            carpeta_base = Cliente.ruta_recurso("informes/Clientes")  # Usa la misma lógica que con imagenes_usuarios
+
+            # Asegúrate de que la carpeta existe
+            os.makedirs(carpeta_base, exist_ok=True)
+
+            # Ruta final del informe
+            ruta = os.path.join(carpeta_base, nombre_archivo)
+
 
             try:
                 if check_predefinido.get():
@@ -1109,9 +1125,9 @@ class Cliente:
         ventana_nombre.resizable(False, False)
 
         # Icono
-        icon_path = "resources/logos/icon_logo.ico"
+        icon_path = Cliente.ruta_recurso("resources/logos/icon_logo.ico")
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             try:
                 ventana_nombre.iconbitmap(icon_path)
@@ -1183,7 +1199,7 @@ class Cliente:
         ventana_nombre.mainloop()
         
     @staticmethod
-    def generar_informe_pdf_fijo(paginas, ruta_salida="informe_Clientes.pdf"):
+    def generar_informe_pdf_fijo(paginas, ruta_salida=ruta_recurso("informe_Clientes.pdf")):
 
         columnas = [
             "DNI/CIF", "Nombre", "Apellido1", "Apellido2",
@@ -1202,13 +1218,13 @@ class Cliente:
             "Idioma": 1
         }
 
-        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
+        font_path = Cliente.ruta_recurso("resources/font/sans-sulex/SANSSULEX.ttf")
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
 
         c = canvas.Canvas(ruta_salida, pagesize=landscape(A4))
         width, height = landscape(A4)
 
-        logo_path = "resources/logos/hgcnegro.png"
+        logo_path = Cliente.ruta_recurso("resources/logos/hgcnegro.png")
         total_padding = 2 * cm
 
         peso_total = sum(pesos.values())
@@ -1287,15 +1303,15 @@ class Cliente:
 
 
     @staticmethod
-    def generar_informe_pdf(paginas, columnas, ruta_salida="informe_clientes.pdf"):
+    def generar_informe_pdf(paginas, columnas, ruta_salida=ruta_recurso("informe_clientes.pdf")):
 
-        font_path = "resources/font/sans-sulex/SANSSULEX.ttf"
+        font_path = Cliente.ruta_recurso("resources/font/sans-sulex/SANSSULEX.ttf")
         pdfmetrics.registerFont(TTFont("Sans Sulex", font_path))
 
         c = canvas.Canvas(ruta_salida, pagesize=landscape(A4))
         width, height = landscape(A4)
 
-        logo_path = "resources/logos/hgcnegro.png"
+        logo_path = Cliente.ruta_recurso("resources/logos/hgcnegro.png")
         total_padding = 2 * cm
 
         num_columnas = len(columnas)
@@ -1377,7 +1393,7 @@ class Cliente:
     
     @staticmethod
     def get_all_client_data():
-        conn = sqlite3.connect("bd/Concesionario.db")  # cambia según uses
+        conn = sqlite3.connect(Cliente.ruta_recurso("bd/Concesionario.db"))  # cambia según uses
         cursor = conn.cursor()
 
         columns = Cliente.visible_columns
@@ -1410,7 +1426,7 @@ class Cliente:
         Cliente.ventanas_secundarias.append(app_sp)
 
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             app_sp.iconbitmap(Cliente.icon_path)
 
@@ -1418,7 +1434,7 @@ class Cliente:
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
 
-        icon_path = "resources/logos/icon_logo.ico"
+        icon_path = Cliente.ruta_recurso("resources/logos/icon_logo.ico")
         if icon_path and os.path.exists(icon_path):
             app_sp.iconbitmap(icon_path)
 
@@ -1563,7 +1579,7 @@ class Cliente:
             datos = {k: v.get().strip() for k, v in entradas.items()}
             print("Datos recogidos:", datos)
 
-            db_path = "bd/Concesionario.db"
+            db_path = Cliente.ruta_recurso("bd/Concesionario.db")
 
             try:
                 conn = sqlite3.connect(db_path)
@@ -1705,8 +1721,8 @@ class Cliente:
 
         Cliente.ventana_abierta = True  # Marcamos la ventana como abierta
 
-        icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/Concesionario.db")
+        icon_path = Cliente.ruta_recurso("resources/logos/icon_logo.ico")
+        conn = sqlite3.connect(Cliente.ruta_recurso("bd/Concesionario.db"))
         cursor = conn.cursor()
         cursor.execute("SELECT dni_cif FROM Cliente WHERE dni_cif = ?", (dni_cif,))
         cliente = cursor.fetchone()
@@ -1722,7 +1738,7 @@ class Cliente:
         Cliente.ventanas_secundarias.append(appAddF)
 
         if sys.platform == "win32":
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAddF.iconbitmap(Cliente.icon_path)
 
@@ -1834,7 +1850,7 @@ class Cliente:
 
                 if isinstance(entrada, ctk.CTkOptionMenu):
                     if entrada.cget("values")[0] in ["Sí", "No"]:
-                        valores.append("1" if entrada.get() == "Sí" else "0")
+                        valores.append("Sí" if entrada.get() == "Sí" else "No")
                     else:
                         valores.append(entrada.get())
 
@@ -1861,7 +1877,7 @@ class Cliente:
                 return
 
             try:
-                with sqlite3.connect("bd/Concesionario.db") as conn:
+                with sqlite3.connect(Cliente.ruta_recurso("bd/Concesionario.db")) as conn:
                     cursor = conn.cursor()
                     cursor.execute(f"""
                         INSERT INTO FacturasClientes (

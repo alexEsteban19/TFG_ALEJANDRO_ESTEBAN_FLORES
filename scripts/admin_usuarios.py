@@ -9,7 +9,12 @@ from datetime import datetime
 from tkinter import ttk, messagebox, filedialog
 
 class AdminUsuarios:
-
+    @staticmethod
+    def ruta_recurso(relativa):
+        """Devuelve la ruta absoluta a un recurso, adaptada para PyInstaller."""
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relativa)
+        return os.path.join(os.path.abspath("."), relativa)
     # Definimos variables base
     current_page = 1
     rows_per_page = 20
@@ -20,7 +25,7 @@ class AdminUsuarios:
     selected_user = None  # Cliente seleccionado empieza "vacío"
     query_params = ""
     ventana_abierta = False  
-    icon_path = "resources/logos/icon_logo.ico"
+    icon_path = ruta_recurso("resources/logos/icon_logo.ico")
     ventanas_secundarias = []
 
     # todos los datos de la BD
@@ -93,7 +98,7 @@ class AdminUsuarios:
         nav_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d")
         nav_frame.pack(side="top", fill="x", padx=int(rel_size // 3), pady=int(rel_size // 3))
 
-        prev_image = Image.open("resources/icons/white/angle-small-left.png").resize(icon_size)
+        prev_image = Image.open(AdminUsuarios.ruta_recurso("resources/icons/white/angle-small-left.png")).resize(icon_size)
         prev_image = ctk.CTkImage(light_image=prev_image)
         prev_btn = ctk.CTkButton(nav_frame, text="", image=prev_image, fg_color=btn_color,
                                 height=rel_size, width=rel_size,
@@ -108,7 +113,7 @@ class AdminUsuarios:
                                 text_color="white")
         page_label.pack(side="left")
 
-        next_image = Image.open("resources/icons/white/angle-small-right.png").resize(icon_size)
+        next_image = Image.open(AdminUsuarios.ruta_recurso("resources/icons/white/angle-small-right.png")).resize(icon_size)
         next_image = ctk.CTkImage(light_image=next_image)
         next_btn = ctk.CTkButton(nav_frame, text="", image=next_image, fg_color=btn_color,
                                 height=rel_size, width=rel_size,
@@ -121,7 +126,7 @@ class AdminUsuarios:
         action_frame = ctk.CTkFrame(nav_frame, fg_color="#3d3d3d")
         action_frame.pack(side="right", padx=rel_size, pady=rel_size // 1.5)
 
-        add_image = Image.open("resources/icons/white/agregar.png").resize(icon_size)
+        add_image = Image.open(AdminUsuarios.ruta_recurso("resources/icons/white/agregar.png")).resize(icon_size)
         add_image = ctk.CTkImage(light_image=add_image)
         add_btn = ctk.CTkButton(action_frame, text="Agregar Usuario", image=add_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -129,7 +134,7 @@ class AdminUsuarios:
                                 border_width=1, border_color="white", command=lambda: AdminUsuarios.add_user(frame_right, clear_frame_right, app))
         add_btn.pack(side="left", padx=rel_size // 2)
 
-        edit_image = Image.open("resources/icons/white/boli.png").resize(icon_size)
+        edit_image = Image.open(AdminUsuarios.ruta_recurso("resources/icons/white/boli.png")).resize(icon_size)
         edit_image = ctk.CTkImage(light_image=edit_image)
         edit_btn = ctk.CTkButton(action_frame, text="Editar Usuario", image=edit_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -137,7 +142,7 @@ class AdminUsuarios:
                                 border_width=1, border_color="white", command=lambda: AdminUsuarios.edit_user(AdminUsuarios.selected_user, frame_right, clear_frame_right, app))
         edit_btn.pack(side="left", padx=rel_size // 2)
 
-        delete_image = Image.open("resources/icons/white/trash.png").resize(icon_size)
+        delete_image = Image.open(AdminUsuarios.ruta_recurso("resources/icons/white/trash.png")).resize(icon_size)
         delete_image = ctk.CTkImage(light_image=delete_image)
         delete_btn = ctk.CTkButton(action_frame, text="Borrar Usuario", image=delete_image, fg_color=btn_color,
                                 font=("Sans Sulex", heading_font_size),
@@ -180,7 +185,8 @@ class AdminUsuarios:
         style.map("Treeview",
                 background=[("selected", "#16466e")],
                 foreground=[("selected", "white")])
-
+        style.map("Treeview.Heading",
+                background=[("active", "#16466e")])  # Cambia el color que tú quieras
 
         # Creamos la tabla con sus columnas, su limite de filas por pagina y su scroll
         tree = ttk.Treeview(tree_frame, columns=AdminUsuarios.visible_columns, show="headings", height=AdminUsuarios.rows_per_page)
@@ -236,7 +242,7 @@ class AdminUsuarios:
 
     @staticmethod # Hace consulta y crea la tabla con los datos.
     def load_data(frame_right, clear_frame_right, app):
-        db_path = "bd/Users.sqlite"
+        db_path = AdminUsuarios.ruta_recurso("bd/Users.sqlite")
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
@@ -311,7 +317,7 @@ class AdminUsuarios:
         #icono
         if sys.platform == "win32":
             import ctypes
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appAdd.iconbitmap(AdminUsuarios.icon_path)
 
@@ -382,7 +388,7 @@ class AdminUsuarios:
                             messagebox.showerror("Error", "Introduce primero el Nombre de Usuario antes de seleccionar la imagen.", parent=appAdd)
                             return
 
-                        carpeta_destino = "imagenes_usuarios"
+                        carpeta_destino = AdminUsuarios.ruta_recurso("imagenes_usuarios")
                         if not os.path.exists(carpeta_destino):
                             os.makedirs(carpeta_destino)
 
@@ -442,7 +448,7 @@ class AdminUsuarios:
                 return
 
             try: # Meterlo a la BD
-                with sqlite3.connect("bd/Users.sqlite") as conn:
+                with sqlite3.connect(AdminUsuarios.ruta_recurso("bd/Users.sqlite")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         INSERT INTO Usuarios (
@@ -506,8 +512,8 @@ class AdminUsuarios:
 
         AdminUsuarios.ventana_abierta = True  # Marcamos la ventana como abierta
 
-        icon_path = "resources/logos/icon_logo.ico"
-        conn = sqlite3.connect("bd/Users.sqlite")
+        icon_path = AdminUsuarios.ruta_recurso("resources/logos/icon_logo.ico")
+        conn = sqlite3.connect(AdminUsuarios.ruta_recurso("bd/Users.sqlite"))
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM Usuarios WHERE UserName = ?", (dni_cif,))
         user = cursor.fetchone()
@@ -523,7 +529,7 @@ class AdminUsuarios:
 
         if sys.platform == "win32":
             import ctypes
-            myappid = "mycompany.myapp.sellcars.1.0"
+            myappid = "mycompany.myapp.hgc.1.0"
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
             appModify.iconbitmap(AdminUsuarios.icon_path)
 
@@ -620,7 +626,7 @@ class AdminUsuarios:
                         import os
                         import shutil
 
-                        carpeta_destino = "imagenes_usuarios"
+                        carpeta_destino = AdminUsuarios.ruta_recurso("imagenes_usuarios")
                         if not os.path.exists(carpeta_destino):
                             os.makedirs(carpeta_destino)
 
@@ -638,8 +644,11 @@ class AdminUsuarios:
 
                         try:
                             shutil.copyfile(ruta_origen, ruta_destino)
+                            # Convertir la ruta a relativa antes de insertar en el Entry
+                            ruta_destino = os.path.relpath(ruta_destino, os.path.abspath("."))
                             entry_ruta.delete(0, "end")
                             entry_ruta.insert(0, ruta_destino)
+
                         except Exception as e:
                             messagebox.showerror("Error al copiar imagen", str(e), parent=appModify)
 
@@ -706,7 +715,7 @@ class AdminUsuarios:
 
             # Si todo es válido, hacemos el update
             try:
-                with sqlite3.connect("bd/Users.sqlite") as conn:
+                with sqlite3.connect(AdminUsuarios.ruta_recurso("bd/Users.sqlite")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         UPDATE Usuarios SET
@@ -755,7 +764,7 @@ class AdminUsuarios:
         if respuesta:
             try:
                 # Primero obtenemos la ruta de la imagen asociada al usuario
-                with sqlite3.connect("bd/Users.sqlite") as conn:
+                with sqlite3.connect(AdminUsuarios.ruta_recurso("bd/Users.sqlite")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("SELECT rutaImagen FROM Usuarios WHERE UserName = ?", (selected_dni,))
                     ruta_imagen = cursor.fetchone()
@@ -768,7 +777,7 @@ class AdminUsuarios:
                         messagebox.showwarning("Advertencia", f"No se pudo eliminar la imagen del usuario:\n{e}")
 
                 # Ahora borramos el usuario de la base de datos
-                with sqlite3.connect("bd/Users.sqlite") as conn:
+                with sqlite3.connect(AdminUsuarios.ruta_recurso("bd/Users.sqlite")) as conn:
                     cursor = conn.cursor()
                     cursor.execute("DELETE FROM Usuarios WHERE UserName = ?", (selected_dni,))
                     conn.commit()
@@ -781,3 +790,4 @@ class AdminUsuarios:
         else:
             # El usuario eligió "No", no se hace nada
             return
+
