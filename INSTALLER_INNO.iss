@@ -8,7 +8,6 @@ Compression=lzma
 SolidCompression=yes
 SetupIconFile=resources\logos\icon_logo.ico
 UninstallDisplayIcon=resources\logos\UNINSTALL.ico
-PrivilegesRequired=admin
 
 [Files]
 ; Archivos principales
